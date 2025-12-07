@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -21,6 +22,7 @@ import {
 import useGeminiGenerator from "@/hooks/useGeminiGenerator";
 import { useIpImagineTour } from "@/hooks/useIpImagineTour";
 import { getCurrentTimestamp } from "@/lib/ip-assistant/utils";
+import { truncateAddress } from "@/lib/ip-assistant/utils";
 import { calculateBlobHash } from "@/lib/utils/hash";
 import { calculatePerceptualHash } from "@/lib/utils/perceptual-hash";
 import { getImageVisionDescription } from "@/lib/utils/vision-api";
@@ -31,7 +33,7 @@ const IpImagine = () => {
   const context = useContext(CreationContext);
   const creations = context?.creations || [];
   const guestMode = context?.guestMode || false;
-  const { authenticated } = usePrivy();
+  const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
   const {
     tourStep,
@@ -81,6 +83,40 @@ const IpImagine = () => {
 
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
+
+  // Get primary wallet address
+  const primaryWalletAddress = useMemo(() => {
+    if (wallets && wallets.length > 0) {
+      const walletWithAddress = wallets.find((wallet) => wallet.address);
+      if (walletWithAddress?.address) {
+        return walletWithAddress.address;
+      }
+    }
+    return user?.wallet?.address ?? null;
+  }, [wallets, user?.wallet?.address]);
+
+  // Wallet connection handlers
+  const handleWalletButtonClick = useCallback(() => {
+    if (!ready) return;
+    if (authenticated) {
+      logout();
+    } else {
+      void login({ loginMethods: ["wallet"] });
+    }
+  }, [ready, authenticated, login, logout]);
+
+  const walletButtonText = authenticated
+    ? "Disconnect"
+    : ready
+      ? "Connect Wallet"
+      : "Loading Wallet";
+
+  const walletButtonDisabled = !ready && !authenticated;
+
+  const connectedAddressLabel =
+    authenticated && primaryWalletAddress
+      ? truncateAddress(primaryWalletAddress)
+      : null;
 
   // Auto-start tour if coming from welcome screen
   useEffect(() => {
@@ -447,9 +483,10 @@ const IpImagine = () => {
     <ChatHeaderActions
       guestMode={guestMode}
       onToggleGuest={handleToggleGuest}
-      walletButtonText="Connect"
-      walletButtonDisabled={true}
-      onWalletClick={() => {}}
+      walletButtonText={walletButtonText}
+      walletButtonDisabled={walletButtonDisabled}
+      onWalletClick={handleWalletButtonClick}
+      connectedAddressLabel={connectedAddressLabel}
       showGuest={true}
     />
   );
