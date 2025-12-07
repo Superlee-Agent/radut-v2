@@ -1,4 +1,11 @@
-import { useState, useContext, useRef, useEffect } from "react";
+import {
+  useState,
+  useContext,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
@@ -9,6 +16,7 @@ import ResultUpscaleModal from "@/components/ip/imagine/results/ResultUpscaleMod
 import IpImagineInput from "@/components/ip/imagine/Input";
 import ChatHeaderActions from "@/components/ip/assistant/ChatHeaderActions";
 import SidebarExtras from "@/components/ip/assistant/SidebarExtras";
+import { ConnectWalletView } from "@/components/portfolio";
 import { CreationContext, Creation } from "@/context/CreationContext";
 import * as openaiService from "@/services/openaiService";
 import { generateDemoImage } from "@/lib/utils/generate-demo-image";
@@ -16,8 +24,32 @@ import { generateDemoImage } from "@/lib/utils/generate-demo-image";
 const IpImagineCreationResult = () => {
   const navigate = useNavigate();
   const context = useContext(CreationContext);
-  const { authenticated } = usePrivy();
+  const { authenticated, ready, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
+
+  // Get primary wallet address using same pattern as MyPortfolio
+  const primaryWalletAddress = useMemo(() => {
+    if (wallets && wallets.length > 0) {
+      const walletWithAddress = wallets.find((w) => w.address);
+      if (walletWithAddress?.address) {
+        return walletWithAddress.address;
+      }
+    }
+    return user?.wallet?.address ?? null;
+  }, [wallets, user?.wallet?.address]);
+
+  // Handle wallet connection
+  const handleWalletConnect = useCallback(() => {
+    if (!ready) return;
+    if (!authenticated) {
+      void login({ loginMethods: ["wallet"] });
+    }
+  }, [ready, authenticated, login]);
+
+  // Handle wallet disconnection
+  const handleWalletDisconnect = useCallback(async () => {
+    await logout();
+  }, [logout]);
 
   if (!context) {
     return (
@@ -196,6 +228,10 @@ const IpImagineCreationResult = () => {
   };
 
   const handleToggleGuest = () => {
+    if (!guestMode && authenticated) {
+      // If toggling to guest mode from authenticated, disconnect wallet
+      handleWalletDisconnect();
+    }
     setGuestMode(!guestMode);
   };
 
@@ -203,9 +239,15 @@ const IpImagineCreationResult = () => {
     <ChatHeaderActions
       guestMode={guestMode}
       onToggleGuest={handleToggleGuest}
-      walletButtonText="Connect"
-      walletButtonDisabled={true}
-      onWalletClick={() => {}}
+      walletButtonText={
+        authenticated && primaryWalletAddress ? "Disconnect" : "Connect"
+      }
+      walletButtonDisabled={false}
+      onWalletClick={
+        authenticated && primaryWalletAddress
+          ? handleWalletDisconnect
+          : handleWalletConnect
+      }
       showGuest={true}
     />
   );
