@@ -1536,6 +1536,7 @@ const IpAssistant = () => {
       walletButtonDisabled={walletButtonDisabled}
       onWalletClick={handleWalletButtonClick}
       connectedAddressLabel={connectedAddressLabel}
+      isWalletConnected={authenticated}
     />
   );
 
