@@ -15,10 +15,8 @@ interface ExpandedAssetModalProps {
 
 export const ExpandedAssetModal = ({
   asset,
-  isOpen,
   onClose,
   onShowDetails,
-  onRemix,
   onRemixMenu,
   onRemixSelected,
 }: ExpandedAssetModalProps) => {
@@ -69,7 +67,12 @@ export const ExpandedAssetModal = ({
 
                 if (!isFullscreen) {
                   if (container.requestFullscreen) {
-                    container.requestFullscreen().catch(() => {});
+                    container.requestFullscreen().catch((err) => {
+                      console.warn(
+                        "[ExpandedAssetModal] Fullscreen request failed:",
+                        err,
+                      );
+                    });
                   } else if ((container as any).webkitRequestFullscreen) {
                     (container as any).webkitRequestFullscreen();
                   } else if ((container as any).mozRequestFullScreen) {
@@ -81,7 +84,12 @@ export const ExpandedAssetModal = ({
                 } else {
                   if (document.fullscreenElement) {
                     if (document.exitFullscreen) {
-                      document.exitFullscreen().catch(() => {});
+                      document.exitFullscreen().catch((err) => {
+                        console.warn(
+                          "[ExpandedAssetModal] Fullscreen exit failed:",
+                          err,
+                        );
+                      });
                     } else if ((document as any).webkitExitFullscreen) {
                       (document as any).webkitExitFullscreen();
                     } else if ((document as any).mozCancelFullScreen) {
