@@ -21,10 +21,11 @@ import {
 } from "@/components/ip/remix";
 import useGeminiGenerator from "@/hooks/useGeminiGenerator";
 import { useIpImagineTour } from "@/hooks/useIpImagineTour";
-import { getCurrentTimestamp } from "@/lib/ip-assistant/utils";
 import { truncateAddress } from "@/lib/ip-assistant/utils";
 import { getImageVisionDescription } from "@/lib/utils/vision-api";
-import { compressToBlob, compressAndEnsureSize } from "@/lib/utils/image";
+import { compressAndEnsureSize } from "@/lib/utils/image";
+import { calculateBlobHash } from "@/lib/utils/hash";
+import { calculatePerceptualHash } from "@/lib/utils/perceptual-hash";
 import { CreationContext } from "@/context/CreationContext";
 
 const IpImagine = () => {
@@ -492,7 +493,6 @@ const IpImagine = () => {
         previewImages={previewImages}
         setPreviewImages={setPreviewImages}
         uploadRef={uploadRef}
-        handleImage={handleImage}
         resultUrl={resultUrl}
         resultUrls={resultUrls}
         creations={creations}
@@ -588,8 +588,6 @@ const IpImagine = () => {
             )?.blur();
           }
         }}
-        toolsOpen={false}
-        setToolsOpen={() => {}}
         suggestions={[]}
         setSuggestions={() => {}}
         attachmentLoading={attachmentLoading}
