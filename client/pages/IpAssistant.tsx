@@ -17,13 +17,7 @@ import {
   type PreviewImagesState,
 } from "@/components/ip/remix";
 import { useIPRegistrationAgent } from "@/hooks/useIPRegistrationAgent";
-import {
-  getLicenseSettingsByGroup,
-  GROUPS,
-  requiresSelfieVerification,
-  requiresSubmitReview,
-} from "@/lib/groupLicense";
-import { determineLicenseType } from "@/lib/license/license-types";
+import { getLicenseSettingsByGroup, GROUPS } from "@/lib/groupLicense";
 import { ANSWER_DETAILS } from "@/lib/ip-assistant/answer-details";
 import {
   getCurrentTimestamp,
@@ -2603,12 +2597,9 @@ const IpAssistant = () => {
         previewImages={previewImages}
         setPreviewImages={setPreviewImages}
         uploadRef={uploadRef}
-        handleImage={handleImage}
         onSubmit={handleSend}
         inputRef={inputRef}
         handleKeyDown={handleKeyDown}
-        toolsOpen={toolsOpen}
-        setToolsOpen={setToolsOpen}
         suggestions={suggestions}
         setSuggestions={setSuggestions}
         attachmentLoading={attachmentLoading}
