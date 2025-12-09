@@ -1,5 +1,4 @@
 import { RequestHandler } from "express";
-import { getOpenAIClient } from "../utils/openai-client.js";
 
 export const generateImageWithWatermark: RequestHandler = async (req, res) => {
   try {
