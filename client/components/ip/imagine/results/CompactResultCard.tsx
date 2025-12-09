@@ -8,7 +8,6 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { privateKeyToAccount } from "viem/accounts";
 import LicensingForm from "./LicensingForm";
 import { CreationContext } from "@/context/CreationContext";
 
