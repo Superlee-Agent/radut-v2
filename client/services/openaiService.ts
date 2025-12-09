@@ -5,14 +5,14 @@ export const generateImageFromText = async (
   if (!prompt) throw new Error("Prompt is required.");
 
   try {
-    const endpoint = guestMode ? "/api/demo-generate" : "/api/generate";
-    const response = await fetch(endpoint, {
+    const response = await fetch("/api/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         prompt: prompt,
+        mode: "demo",
       }),
     });
 
@@ -47,16 +47,14 @@ export const generateImageFromTextWithWatermark = async (
   if (!prompt) throw new Error("Prompt is required.");
 
   try {
-    const endpoint = guestMode
-      ? "/api/demo-generate"
-      : "/api/generate-with-watermark";
-    const response = await fetch(endpoint, {
+    const response = await fetch("/api/generate-with-watermark", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         prompt: prompt,
+        mode: "demo",
       }),
     });
 
@@ -108,9 +106,9 @@ export const editImage = async (
     const formData = new FormData();
     formData.append("image", imageBlob, "image.png");
     formData.append("prompt", prompt);
+    formData.append("mode", "demo");
 
-    const endpoint = guestMode ? "/api/demo-edit" : "/api/edit";
-    const response = await fetch(endpoint, {
+    const response = await fetch("/api/edit", {
       method: "POST",
       body: formData,
     });
