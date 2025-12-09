@@ -1,10 +1,72 @@
 // server/routes/check-ip-assets.ts
 
-import { RequestHandler } from "express";
+import { RequestHandler, Request, Response } from "express";
 
 interface CheckIpAssetsRequestBody {
   address?: string;
   network?: "testnet" | "mainnet";
+}
+
+interface ImageMetadata {
+  pngUrl?: string;
+  originalUrl?: string;
+  thumbnailUrl?: string;
+}
+
+interface NFTMetadata {
+  image?: ImageMetadata;
+  raw?: {
+    image?: string;
+  };
+}
+
+interface StoryApiAsset {
+  ipId: string;
+  title?: string;
+  name?: string;
+  mediaType?: string;
+  mediaUrl?: string;
+  image?: ImageMetadata;
+  nftMetadata?: NFTMetadata;
+  ownerAddress: string;
+  creator?: string;
+  registrationDate?: string;
+  parentsCount?: number;
+}
+
+interface ProcessedAsset extends StoryApiAsset {
+  thumbnailUrl: string;
+}
+
+interface PaginationInfo {
+  hasMore?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+interface StoryApiResponse {
+  data?: StoryApiAsset[];
+  pagination?: PaginationInfo;
+}
+
+interface CheckIpAssetsResponseBody {
+  ok: boolean;
+  address?: string;
+  network?: string;
+  totalCount?: number;
+  originalCount?: number;
+  remixCount?: number;
+  assets?: ProcessedAsset[];
+  error?: string;
+  message?: string;
+  details?: string;
+  status?: number;
+}
+
+interface CachedResponse {
+  status: number;
+  body: Omit<CheckIpAssetsResponseBody, "ok">;
+  ts: number;
 }
 
 function convertIpfsUriToHttp(uri: string): string {
@@ -34,13 +96,17 @@ function convertIpfsUriToHttp(uri: string): string {
   return uri;
 }
 
-const IDP_CHECK = new Map<string, { status: number; body: any; ts: number }>();
+const IDP_CHECK = new Map<string, CachedResponse>();
 
-// Menggunakan tipe any untuk req dan res agar kompiler tidak gagal
-export const handleCheckIpAssets: RequestHandler = async (
-  req: any, // Kunci perbaikan: Menggunakan any
-  res: any, // Kunci perbaikan: Menggunakan any
-) => {
+// Properly typed request handler
+export const handleCheckIpAssets: RequestHandler<
+  object,
+  CheckIpAssetsResponseBody,
+  CheckIpAssetsRequestBody
+> = async (
+  req: Request<object, CheckIpAssetsResponseBody, CheckIpAssetsRequestBody>,
+  res: Response<CheckIpAssetsResponseBody>,
+): Promise<void> => {
   try {
     // Properti 'get' sekarang akan dikenali oleh kompiler TS karena tipe argumen adalah 'any'
     const idempotencyKey = (req.get("Idempotency-Key") ||
@@ -88,7 +154,7 @@ export const handleCheckIpAssets: RequestHandler = async (
       });
     }
 
-    let allAssets: any[] = [];
+    let allAssets: StoryApiAsset[] = [];
     let offset = 0;
     let hasMore = true;
     const limit = 100;
@@ -156,7 +222,7 @@ export const handleCheckIpAssets: RequestHandler = async (
             });
           }
 
-          const data = await response.json();
+          const data: StoryApiResponse = await response.json();
 
           if (!data) {
             console.error("Empty response from Story API", {
@@ -167,7 +233,9 @@ export const handleCheckIpAssets: RequestHandler = async (
             break;
           }
 
-          const assets = Array.isArray(data) ? data : data?.data || [];
+          const assets: StoryApiAsset[] = Array.isArray(data)
+            ? data
+            : data?.data || [];
 
           if (!Array.isArray(assets)) {
             console.warn("Unexpected response format from Story API", {
@@ -180,7 +248,7 @@ export const handleCheckIpAssets: RequestHandler = async (
             break;
           }
 
-          const validAssets = assets.filter((asset: any) => {
+          const validAssets: StoryApiAsset[] = assets.filter((asset) => {
             if (!asset || typeof asset !== "object") {
               console.warn("Invalid asset object", { asset });
               return false;
@@ -242,12 +310,12 @@ export const handleCheckIpAssets: RequestHandler = async (
         });
       }
 
-      const originalCount = allAssets.filter((asset: any) => {
+      const originalCount = allAssets.filter((asset) => {
         const parentsCount = asset?.parentsCount || 0;
         return parentsCount === 0;
       }).length;
 
-      const remixCount = allAssets.filter((asset: any) => {
+      const remixCount = allAssets.filter((asset) => {
         const parentsCount = asset?.parentsCount || 0;
         return parentsCount > 0;
       }).length;
@@ -259,7 +327,7 @@ export const handleCheckIpAssets: RequestHandler = async (
       try {
         const ipIds = allAssets
           .slice(0, 100)
-          .map((a: any) => a.ipId)
+          .map((a) => a.ipId)
           .filter(Boolean);
 
         if (ipIds.length > 0) {
@@ -293,15 +361,18 @@ export const handleCheckIpAssets: RequestHandler = async (
           );
 
           if (enrichmentResponse.ok) {
-            const enrichmentData = await enrichmentResponse.json();
-            const metadataMap = new Map();
+            const enrichmentData: StoryApiResponse =
+              await enrichmentResponse.json();
+            const metadataMap = new Map<string, StoryApiAsset>();
 
-            const enrichedData = Array.isArray(enrichmentData.data)
+            const enrichedData: StoryApiAsset[] = Array.isArray(
+              enrichmentData.data,
+            )
               ? enrichmentData.data
-              : enrichmentData;
+              : enrichmentData.data || [];
 
             if (Array.isArray(enrichedData)) {
-              enrichedData.forEach((asset: any) => {
+              enrichedData.forEach((asset) => {
                 if (asset.ipId) {
                   metadataMap.set(asset.ipId, asset);
                 }
@@ -309,7 +380,7 @@ export const handleCheckIpAssets: RequestHandler = async (
             }
 
             // Merge enriched data with initial results
-            enrichedAssets = allAssets.map((asset: any) => {
+            enrichedAssets = allAssets.map((asset) => {
               const enriched = metadataMap.get(asset.ipId);
               return enriched || asset;
             });
@@ -325,9 +396,9 @@ export const handleCheckIpAssets: RequestHandler = async (
       }
 
       // Transform assets to extract media URLs - IPFS only
-      const assets = enrichedAssets.map((asset: any) => {
-        let mediaUrl = null;
-        let thumbnailUrl = null;
+      const assets: ProcessedAsset[] = enrichedAssets.map((asset) => {
+        let mediaUrl: string | null = null;
+        let thumbnailUrl: string | null = null;
 
         // Only use IPFS-based image URLs, not cached/CDN URLs
         if (asset?.image?.pngUrl) {
@@ -361,6 +432,7 @@ export const handleCheckIpAssets: RequestHandler = async (
         }
 
         return {
+          ...asset,
           ipId: asset.ipId,
           title: asset.title || asset.name || "Untitled Asset",
           mediaUrl: mediaUrl || "",
@@ -370,7 +442,6 @@ export const handleCheckIpAssets: RequestHandler = async (
           creator: asset.creator,
           registrationDate: asset.registrationDate,
           parentsCount: asset.parentsCount,
-          ...asset,
         };
       });
 
