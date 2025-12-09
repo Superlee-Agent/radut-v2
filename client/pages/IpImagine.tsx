@@ -23,8 +23,6 @@ import useGeminiGenerator from "@/hooks/useGeminiGenerator";
 import { useIpImagineTour } from "@/hooks/useIpImagineTour";
 import { getCurrentTimestamp } from "@/lib/ip-assistant/utils";
 import { truncateAddress } from "@/lib/ip-assistant/utils";
-import { calculateBlobHash } from "@/lib/utils/hash";
-import { calculatePerceptualHash } from "@/lib/utils/perceptual-hash";
 import { getImageVisionDescription } from "@/lib/utils/vision-api";
 import { compressToBlob, compressAndEnsureSize } from "@/lib/utils/image";
 import { CreationContext } from "@/context/CreationContext";
@@ -104,6 +102,14 @@ const IpImagine = () => {
       void login({ loginMethods: ["wallet"] });
     }
   }, [ready, authenticated, login, logout]);
+
+  // Auto-disable guest mode when wallet connects
+  useEffect(() => {
+    if (authenticated && guestMode) {
+      console.log("[IpImagine] Wallet connected - auto-disabling guest mode");
+      setGuestMode(false);
+    }
+  }, [authenticated]);
 
   const walletButtonText = authenticated
     ? "Disconnect"
@@ -234,68 +240,12 @@ const IpImagine = () => {
 
         const url = URL.createObjectURL(blob);
 
-        // Calculate hashes and check whitelist
-        setAttachmentLoading(true);
-        try {
-          const hash = await calculateBlobHash(blob);
-          const pHash = await calculatePerceptualHash(blob);
-          let whitelistResult: any = { found: false };
-          try {
-            const res = await fetch("/api/check-remix-hash", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ hash, pHash }),
-            });
-            if (res.ok) whitelistResult = await res.json();
-          } catch (err) {
-            console.warn("Whitelist check failed:", err);
-          }
-
-          if (!whitelistResult || whitelistResult.found !== true) {
-            setPreviewImages((prev) => ({
-              ...prev,
-              remixImage: { blob, name: file.name || "image.jpg", url },
-              additionalImage: null,
-            }));
-            setAttachmentLoading(false);
-            return;
-          }
-
-          // Upload for analysis
-          let analysisData: any = null;
-          try {
-            const form = new FormData();
-            form.append("image", blob, file.name || "image.jpg");
-            const uploadRes = await fetch("/api/upload", {
-              method: "POST",
-              body: form,
-            });
-            if (uploadRes.ok) analysisData = await uploadRes.json();
-          } catch (err) {
-            console.warn("Analysis upload failed:", err);
-          }
-
-          setRemixAnalysisData({
-            blob,
-            name: file.name || "image.jpg",
-            url,
-            hash,
-            whitelist: whitelistResult,
-            analysis: analysisData,
-          });
-          setRemixAnalysisOpen(true);
-          setAttachmentLoading(false);
-          return;
-        } catch (err) {
-          console.error("Remix analysis failed:", err);
-          setAttachmentLoading(false);
-        }
-
-        // default: attach as additional image
         setPreviewImages((prev) => ({
           ...prev,
-          additionalImage: { blob, name: file.name || "image.jpg", url },
+          remixImage: { blob, name: file.name || "image.jpg", url },
+          additionalImage: null,
         }));
+        setStatusText(`✓ Image loaded: ${file.name}`);
       } catch (error) {
         console.error("handleImage error", error);
       }
@@ -488,6 +438,7 @@ const IpImagine = () => {
       onWalletClick={handleWalletButtonClick}
       connectedAddressLabel={connectedAddressLabel}
       showGuest={true}
+      isWalletConnected={authenticated}
     />
   );
 
