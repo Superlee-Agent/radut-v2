@@ -103,13 +103,33 @@ const IpImagine = () => {
     }
   }, [ready, authenticated, login, logout]);
 
-  // Auto-disable guest mode when wallet connects
+  // Auto-disable guest mode and load wallet creations when wallet connects
   useEffect(() => {
-    if (authenticated && guestMode) {
+    if (authenticated && primaryWalletAddress) {
       console.log("[IpImagine] Wallet connected - auto-disabling guest mode");
-      setGuestMode(false);
+      if (guestMode) {
+        setGuestMode(false);
+      }
+      // Load wallet creations when wallet connects
+      if (context?.refreshWalletCreations) {
+        context.refreshWalletCreations(primaryWalletAddress);
+      }
     }
-  }, [authenticated]);
+  }, [authenticated, primaryWalletAddress, context]);
+
+  // Clear remix state when wallet disconnects to prevent inconsistent state
+  useEffect(() => {
+    if (!authenticated || !primaryWalletAddress) {
+      // Wallet disconnected - clear remix state
+      if (currentRemixType || currentParentAsset) {
+        console.log("[IpImagine] Wallet disconnected - clearing remix state");
+        setCurrentRemixType(null);
+        setCurrentParentAsset(null);
+        // Clear preview images to prevent orphaned remix data
+        setPreviewImages({ remixImage: null, additionalImage: null });
+      }
+    }
+  }, [authenticated, primaryWalletAddress]);
 
   const walletButtonText = authenticated
     ? "Disconnect"
@@ -260,6 +280,22 @@ const IpImagine = () => {
     console.log("🎯 handleRemixSelected called with remixType:", remixType);
     setRemixLoading(true);
     try {
+      // Validation: Prevent paid remix in guest mode
+      if (remixType === "paid" && guestMode) {
+        setRemixLoading(false);
+        setStatusText(
+          "⚠️ Paid remix requires wallet connection. Please connect your wallet first.",
+        );
+        return;
+      }
+
+      // Validation: Warn if wallet not fully connected for paid remix
+      if (remixType === "paid" && (!authenticated || !primaryWalletAddress)) {
+        setRemixLoading(false);
+        setStatusText("⚠️ Please connect your wallet to use paid remix.");
+        return;
+      }
+
       const imageUrl = asset.mediaUrl || asset.thumbnailUrl;
       if (!imageUrl) {
         throw new Error("No image URL available for this asset");
@@ -504,6 +540,31 @@ const IpImagine = () => {
           if (creationMode === "video") {
             setStatusText("��� Video generation is coming soon!");
             return;
+          }
+
+          // Validation: Prevent paid remix without proper state
+          if (currentRemixType === "paid") {
+            if (!currentParentAsset) {
+              setStatusText(
+                "Paid remix requires parent asset data. Please select a paid remix again.",
+              );
+              setWaiting(false);
+              return;
+            }
+            if (!authenticated || !primaryWalletAddress) {
+              setStatusText(
+                "Paid remix requires wallet connection. Please connect your wallet.",
+              );
+              setWaiting(false);
+              return;
+            }
+            if (guestMode) {
+              setStatusText(
+                "Paid remix is not available in guest mode. Please switch to wallet mode.",
+              );
+              setWaiting(false);
+              return;
+            }
           }
 
           setWaiting(true);
