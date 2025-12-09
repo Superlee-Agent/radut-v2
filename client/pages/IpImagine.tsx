@@ -30,7 +30,6 @@ import { CreationContext } from "@/context/CreationContext";
 const IpImagine = () => {
   const context = useContext(CreationContext);
   const creations = context?.creations || [];
-  const guestMode = context?.guestMode || false;
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
   const {
@@ -42,14 +41,8 @@ const IpImagine = () => {
     completeTour,
   } = useIpImagineTour();
 
-  const {
-    generate,
-    isLoading,
-    resultUrl,
-    setResultUrl,
-    setResultType,
-    setGuestMode,
-  } = useGeminiGenerator();
+  const { generate, isLoading, resultUrl, setResultUrl, setResultType } =
+    useGeminiGenerator();
 
   const [input, setInput] = useState("");
   const [waiting, setWaiting] = useState(false);
@@ -103,13 +96,28 @@ const IpImagine = () => {
     }
   }, [ready, authenticated, login, logout]);
 
-  // Auto-disable guest mode when wallet connects
+  // Load wallet creations when wallet connects
   useEffect(() => {
-    if (authenticated && guestMode) {
-      console.log("[IpImagine] Wallet connected - auto-disabling guest mode");
-      setGuestMode(false);
+    if (authenticated && primaryWalletAddress) {
+      if (context?.refreshWalletCreations) {
+        context.refreshWalletCreations(primaryWalletAddress);
+      }
     }
-  }, [authenticated]);
+  }, [authenticated, primaryWalletAddress, context]);
+
+  // Clear remix state when wallet disconnects to prevent inconsistent state
+  useEffect(() => {
+    if (!authenticated || !primaryWalletAddress) {
+      // Wallet disconnected - clear remix state
+      if (currentRemixType || currentParentAsset) {
+        console.log("[IpImagine] Wallet disconnected - clearing remix state");
+        setCurrentRemixType(null);
+        setCurrentParentAsset(null);
+        // Clear preview images to prevent orphaned remix data
+        setPreviewImages({ remixImage: null, additionalImage: null });
+      }
+    }
+  }, [authenticated, primaryWalletAddress]);
 
   const walletButtonText = authenticated
     ? "Disconnect"
@@ -182,7 +190,7 @@ const IpImagine = () => {
     };
   }, [remixAnalysisOpen, remixAnalysisData]);
 
-  // Update user identifier in creation context when wallet or guest mode changes
+  // Update wallet identifier in creation context when authentication changes
   useEffect(() => {
     if (!context?.setUserIdentifier) return;
 
@@ -192,8 +200,8 @@ const IpImagine = () => {
       walletAddress = walletWithAddress?.address || null;
     }
 
-    context.setUserIdentifier(walletAddress, guestMode);
-  }, [authenticated, wallets, guestMode, context]);
+    context.setUserIdentifier(walletAddress);
+  }, [authenticated, wallets, context]);
 
   const handleImage = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,6 +268,13 @@ const IpImagine = () => {
     console.log("🎯 handleRemixSelected called with remixType:", remixType);
     setRemixLoading(true);
     try {
+      // Validation: Warn if wallet not fully connected for paid remix
+      if (remixType === "paid" && (!authenticated || !primaryWalletAddress)) {
+        setRemixLoading(false);
+        setStatusText("⚠️ Please connect your wallet to use paid remix.");
+        return;
+      }
+
       const imageUrl = asset.mediaUrl || asset.thumbnailUrl;
       if (!imageUrl) {
         throw new Error("No image URL available for this asset");
@@ -421,23 +436,12 @@ const IpImagine = () => {
   // Note: Watermark is now applied in useGeminiGenerator hook during generation
   // This ensures watermark is applied before image is stored in creation history
 
-  const handleToggleGuest = async () => {
-    setGuestMode(!guestMode);
-    // Refresh guest creations when toggling
-    if (!guestMode && context?.refreshGuestCreations) {
-      await context.refreshGuestCreations();
-    }
-  };
-
   const headerActions = (
     <ChatHeaderActions
-      guestMode={guestMode}
-      onToggleGuest={handleToggleGuest}
       walletButtonText={walletButtonText}
       walletButtonDisabled={walletButtonDisabled}
       onWalletClick={handleWalletButtonClick}
       connectedAddressLabel={connectedAddressLabel}
-      showGuest={true}
       isWalletConnected={authenticated}
     />
   );
@@ -491,7 +495,6 @@ const IpImagine = () => {
         handleImage={handleImage}
         resultUrl={resultUrl}
         resultUrls={resultUrls}
-        guestMode={guestMode}
         creations={creations}
         onSubmit={async () => {
           if (
@@ -504,6 +507,24 @@ const IpImagine = () => {
           if (creationMode === "video") {
             setStatusText("��� Video generation is coming soon!");
             return;
+          }
+
+          // Validation: Prevent paid remix without proper state
+          if (currentRemixType === "paid") {
+            if (!currentParentAsset) {
+              setStatusText(
+                "Paid remix requires parent asset data. Please select a paid remix again.",
+              );
+              setWaiting(false);
+              return;
+            }
+            if (!authenticated || !primaryWalletAddress) {
+              setStatusText(
+                "Paid remix requires wallet connection. Please connect your wallet.",
+              );
+              setWaiting(false);
+              return;
+            }
           }
 
           setWaiting(true);
@@ -539,16 +560,12 @@ const IpImagine = () => {
               };
             }
 
-            await generate(
-              creationMode,
-              {
-                prompt: input,
-                image: imageData,
-                remixType: currentRemixType,
-                parentAsset: currentParentAsset,
-              },
-              guestMode,
-            );
+            await generate(creationMode, {
+              prompt: input,
+              image: imageData,
+              remixType: currentRemixType,
+              parentAsset: currentParentAsset,
+            });
 
             setInput("");
             setPreviewImages({ remixImage: null, additionalImage: null });
