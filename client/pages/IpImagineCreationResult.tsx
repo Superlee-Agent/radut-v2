@@ -87,10 +87,12 @@ const IpImagineCreationResult = () => {
     isLoading,
     loadingMessage,
     error,
+    fetchError,
     originalPrompt,
     guestMode,
     setGuestMode,
     updateCreationWithOriginalUrl,
+    creations,
   } = context;
 
   const [showUpscaler, setShowUpscaler] = useState(false);
@@ -126,21 +128,48 @@ const IpImagineCreationResult = () => {
     context.setUserIdentifier(walletAddress, guestMode);
   }, [authenticated, wallets, guestMode, context]);
 
-  // Refresh guest creations when toggling to guest mode
+  // Refresh creations when toggling between guest and wallet modes
   useEffect(() => {
-    if (!guestMode || !context?.refreshGuestCreations) return;
-    context.refreshGuestCreations();
-  }, [guestMode, context]);
+    if (guestMode && context?.refreshGuestCreations) {
+      context.refreshGuestCreations();
+    } else if (
+      !guestMode &&
+      authenticated &&
+      primaryWalletAddress &&
+      context?.refreshWalletCreations
+    ) {
+      context.refreshWalletCreations(primaryWalletAddress);
+    }
+  }, [guestMode, authenticated, primaryWalletAddress, context]);
 
-  // Auto-disable guest mode when wallet connects
+  // Auto-disable guest mode and load wallet creations when wallet connects
   useEffect(() => {
-    if (authenticated && guestMode) {
+    if (authenticated && primaryWalletAddress) {
       console.log(
         "[IpImagineCreationResult] Wallet connected - auto-disabling guest mode",
       );
-      setGuestMode(false);
+      if (guestMode) {
+        setGuestMode(false);
+      }
+      // Load wallet creations when wallet connects
+      if (context?.refreshWalletCreations) {
+        context.refreshWalletCreations(primaryWalletAddress);
+      }
+    } else if (!authenticated) {
+      // Clear creations when wallet disconnects (privacy protection)
+      console.log(
+        "[IpImagineCreationResult] Wallet disconnected - clearing creations",
+      );
+      if (context?.clearCreations) {
+        context.clearCreations();
+      }
+      // Clear all local UI states related to results
+      setUpscaledUrl(null);
+      setUpscalingCreationId(null);
+      setExpandedCreationId(null);
+      setShowUpscaler(false);
     }
-  }, [authenticated]);
+  }, [authenticated, primaryWalletAddress, context]);
 
   const handleDownload = () => {
     if (!displayUrl) return;
@@ -296,8 +325,68 @@ const IpImagineCreationResult = () => {
       onLogoClick={() => navigate("/")}
     >
       <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 pb-24 flex-1 overflow-y-auto bg-transparent scroll-smooth">
-        {context.creations.filter((c) => c.isGuest === guestMode).length >
-          0 && (
+        {fetchError && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md mx-auto mb-6"
+          >
+            <div className="rounded-2xl bg-orange-900/20 border border-orange-800/50 p-6">
+              <div className="flex gap-3 mb-3">
+                <svg
+                  className="h-6 w-6 text-orange-500 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div>
+                  <h3 className="text-lg font-semibold text-orange-300">
+                    Failed to Load Creations
+                  </h3>
+                  <p className="text-sm text-orange-200/80 mt-1">
+                    {fetchError}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-3 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => navigate("/ip-imagine")}
+                  className="px-3 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-lg font-medium transition-colors"
+                >
+                  Back to IP Imagine
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {creations
+          .filter((c) => {
+            if (guestMode) {
+              return c.isGuest === true;
+            } else {
+              // Only show creations from currently connected wallet
+              return (
+                c.isGuest === false &&
+                c.walletAddress?.toLowerCase() ===
+                  primaryWalletAddress?.toLowerCase()
+              );
+            }
+          })
+          .filter((c) => true).length > 0 && (
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-white">Results</h2>
             <button
@@ -418,20 +507,51 @@ const IpImagineCreationResult = () => {
                 );
               })()}
             </motion.div>
-          ) : context.creations.filter((c) => c.isGuest === guestMode)
-              .length === 0 && !isLoading ? (
+          ) : creations
+              .filter((c) => {
+                if (guestMode) {
+                  return c.isGuest === true;
+                } else {
+                  return (
+                    c.isGuest === false &&
+                    c.walletAddress?.toLowerCase() ===
+                      primaryWalletAddress?.toLowerCase()
+                  );
+                }
+              })
+              .filter((c) => true).length === 0 && !isLoading ? (
             <motion.div
               key="no-data"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center h-[400px]"
             >
-              <p className="text-slate-400 mb-4">
-                {guestMode
-                  ? "No shared creations yet. Create one to get started!"
-                  : "No creation data found"}
-              </p>
-              <Button onClick={() => navigate("/ip-imagine")}>
+              {authenticated && !guestMode && primaryWalletAddress ? (
+                <>
+                  <p className="text-slate-400 mb-4">
+                    No creations found for wallet{" "}
+                    {primaryWalletAddress.substring(0, 6)}...
+                    {primaryWalletAddress.substring(
+                      primaryWalletAddress.length - 4,
+                    )}
+                  </p>
+                  <p className="text-sm text-slate-500 mb-6 text-center max-w-md">
+                    Generate an image on the IP Imagine page to get started
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-slate-400 mb-4">
+                    {guestMode
+                      ? "No shared creations yet. Create one to get started!"
+                      : "No creation data found. Please connect your wallet or create an image."}
+                  </p>
+                </>
+              )}
+              <Button
+                onClick={() => navigate("/ip-imagine")}
+                className="bg-[#FF4DA6] hover:bg-[#FF4DA6]/80 text-white"
+              >
                 Back to IP Imagine
               </Button>
             </motion.div>
@@ -482,10 +602,31 @@ const IpImagineCreationResult = () => {
                     </p>
                   </motion.div>
                 )}
-                {context.creations.filter((c) => c.isGuest === guestMode)
-                  .length > 0 ? (
+                {context.creations
+                  .filter((c) => {
+                    if (guestMode) {
+                      return c.isGuest === true;
+                    } else {
+                      return (
+                        c.isGuest === false &&
+                        c.walletAddress?.toLowerCase() ===
+                          primaryWalletAddress?.toLowerCase()
+                      );
+                    }
+                  })
+                  .filter((c) => true).length > 0 ? (
                   context.creations
-                    .filter((c) => c.isGuest === guestMode)
+                    .filter((c) => {
+                      if (guestMode) {
+                        return c.isGuest === true;
+                      } else {
+                        return (
+                          c.isGuest === false &&
+                          c.walletAddress?.toLowerCase() ===
+                            primaryWalletAddress?.toLowerCase()
+                        );
+                      }
+                    })
                     .map((creation) => (
                       <motion.div
                         key={creation.id}
