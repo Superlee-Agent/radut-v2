@@ -705,12 +705,9 @@ const IpImagineCreationResult = () => {
           previewImages={previewImages}
           setPreviewImages={setPreviewImages}
           uploadRef={uploadRef}
-          handleImage={handleImage}
           onSubmit={handleSubmit}
           inputRef={inputRef}
           handleKeyDown={handleKeyDown}
-          toolsOpen={toolsOpen}
-          setToolsOpen={setToolsOpen}
           suggestions={suggestions}
           setSuggestions={setSuggestions}
           attachmentLoading={attachmentLoading}
