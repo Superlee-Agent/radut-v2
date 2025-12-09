@@ -1,14 +1,17 @@
 import { useContext } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { CreationContext } from "@/context/CreationContext";
 import * as openaiService from "@/services/openaiService";
 import { GenerationOptions, ToggleMode } from "@/types/generation";
 import {
-  uploadGuestImageToSupabase,
+  uploadWalletImageToSupabase,
   isSupabaseConfigured,
 } from "@/lib/utils/supabase";
 
 const useGeminiGenerator = () => {
   const context = useContext(CreationContext);
+  const { authenticated, user } = usePrivy();
+  const { wallets } = useWallets();
 
   if (!context) {
     throw new Error(
@@ -25,14 +28,18 @@ const useGeminiGenerator = () => {
     resultUrl,
     addCreation,
     setOriginalPrompt,
-    guestMode,
   } = context;
 
-  const generate = async (
-    mode: ToggleMode,
-    options: GenerationOptions,
-    demoModeParam: boolean = false,
-  ) => {
+  // Get primary wallet address
+  const primaryWalletAddress =
+    context.creations[0]?.registeredByWallet ||
+    (wallets && wallets.length > 0
+      ? wallets.find((w) => w.address)?.address
+      : user?.wallet?.address) ||
+    null;
+
+  const generate = async (mode: ToggleMode, options: GenerationOptions) => {
+    const demoModeParam = false; // Wallet-only mode always uses real API
     if (mode === "video") {
       setError("Video generation is coming soon!");
       return;
@@ -92,10 +99,13 @@ const useGeminiGenerator = () => {
       type = "image";
       setResultType("image");
 
-      // Upload to Supabase if in guest mode and Supabase is configured
+      // Upload to Supabase (wallet mode only)
       let finalUrl = generatedUrl;
       const creationId = `creation_${Date.now()}`;
-      if (demoModeParam && isSupabaseConfigured()) {
+
+      const shouldUpload = authenticated && primaryWalletAddress;
+
+      if (shouldUpload && isSupabaseConfigured()) {
         try {
           setLoadingMessage("Uploading to storage...");
 
@@ -114,11 +124,12 @@ const useGeminiGenerator = () => {
 
           const blob = dataURLtoBlob(generatedUrl);
 
-          // Upload to Supabase
-          const uploadedUrl = await uploadGuestImageToSupabase({
+          // Upload to wallet bucket
+          let uploadedUrl: string | null = null;
+          uploadedUrl = await uploadWalletImageToSupabase({
             file: blob,
-            fileName: `${creationId}.png`,
             creationId,
+            walletAddress: primaryWalletAddress,
           });
 
           if (uploadedUrl) {
@@ -144,11 +155,12 @@ const useGeminiGenerator = () => {
         cleanUrlToStore = originalUrl;
       }
 
+      // Add creation with wallet address
       addCreation(
         finalUrl,
         type,
         options.prompt,
-        guestMode,
+        primaryWalletAddress || "",
         remixType,
         options.parentAsset,
         originalUrl,
@@ -189,13 +201,10 @@ const useGeminiGenerator = () => {
       const [header, base64Data] = resultUrl.split(",");
       const mimeType = header.match(/:(.*?);/)?.[1] || "image/png";
 
-      const upscaledUrl = await openaiService.upscaleImage(
-        {
-          imageBytes: base64Data,
-          mimeType,
-        },
-        context.guestMode,
-      );
+      const upscaledUrl = await openaiService.upscaleImage({
+        imageBytes: base64Data,
+        mimeType,
+      });
       setResultUrl(upscaledUrl);
       setResultType("image");
     } catch (e: any) {
