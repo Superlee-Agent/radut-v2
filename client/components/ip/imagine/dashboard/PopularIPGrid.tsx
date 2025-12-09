@@ -1,12 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Loader } from "lucide-react";
-import {
-  SearchResultsGrid,
-  ExpandedAssetModal,
-  useDomainFetch,
-  useUniqueOwners,
-} from "@/components/ip/search";
+import { SearchResultsGrid, ExpandedAssetModal } from "@/components/ip/search";
 import { CategoryBrowser } from "./CategoryBrowser";
 import { FeaturedCatalog } from "./FeaturedCatalog";
 import type { PopularItem, SearchResult } from "@/components/ip/remix/types";
@@ -166,7 +161,6 @@ const DUMMY_DATA: Record<"ip" | "image" | "video" | "music", PopularItem[]> = {
 };
 
 export const PopularIPGrid = ({
-  onBack,
   onRemixSelected,
   onAssetExpanded,
 }: PopularIPGridProps) => {
@@ -180,7 +174,6 @@ export const PopularIPGrid = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentOffset, setCurrentOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const [totalResults, setTotalResults] = useState(0);
   const [lastQueryType, setLastQueryType] = useState<
     "keyword" | "owner" | null
   >(null);
@@ -260,7 +253,6 @@ export const PopularIPGrid = ({
         const results = searchData.results || [];
 
         setSearchResults(results.slice(0, ITEMS_PER_PAGE));
-        setTotalResults(results.length);
         setCurrentOffset(ITEMS_PER_PAGE);
         setHasMore(results.length > ITEMS_PER_PAGE);
       } else {
@@ -285,7 +277,6 @@ export const PopularIPGrid = ({
         const results = data.results || [];
 
         setSearchResults(results);
-        setTotalResults(data.totalSearched || results.length);
         setCurrentOffset(ITEMS_PER_PAGE);
         setHasMore(
           data.pagination?.hasMore || results.length >= ITEMS_PER_PAGE,
