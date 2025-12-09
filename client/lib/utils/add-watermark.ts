@@ -43,15 +43,14 @@ export async function addCanvasWatermark(
         ctx.fillText(watermarkText, x, y);
       }
 
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("Failed to create blob from canvas"));
-          return;
-        }
-
-        const url = URL.createObjectURL(blob);
-        resolve(url);
-      }, "image/png");
+      // Convert canvas to data URL (permanent, can be saved to database)
+      // instead of blob URL (temporary, tied to browser session)
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        resolve(dataUrl);
+      } catch (error) {
+        reject(new Error("Failed to convert canvas to data URL"));
+      }
     };
 
     img.onerror = () => {
