@@ -19,9 +19,10 @@ export interface Creation {
   parentAsset?: any;
   originalUrl?: string;
   registeredByWallet?: string;
-  registeredIpId?: string;
-  cleanUrl?: string; // Clean version (no watermark) for paid remix - stored in Supabase
+  registeredIpId?: string; // Child IP ID from Story Protocol registration
   watermarkedUrl?: string; // Watermarked version for paid remix - stored in Supabase
+  childIpId?: string; // Child IP ID - marks as registered
+  isUploadingUrl?: boolean; // Track if watermarked/original URL is still uploading to Supabase
 }
 
 interface CreationContextType {
@@ -46,7 +47,6 @@ interface CreationContextType {
     remixType?: "paid" | "free" | null,
     parentAsset?: any,
     originalUrl?: string,
-    cleanUrl?: string,
     watermarkedUrl?: string,
   ) => void;
   updateCreationWithOriginalUrl: (
@@ -55,6 +55,7 @@ interface CreationContextType {
     registeredByWallet?: string,
     registeredIpId?: string,
   ) => void;
+  updateCreationUploadStatus: (id: string, isUploading: boolean) => void;
   getRegisteredIpIdsForWallet: (walletAddress: string) => string[];
   isCreationUnlockedByWallet: (
     creationId: string,
@@ -238,7 +239,6 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
       remixType?: "paid" | "free" | null,
       parentAsset?: any,
       originalUrl?: string,
-      cleanUrl?: string,
       watermarkedUrl?: string,
     ) => {
       const now = Date.now();
@@ -252,7 +252,6 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
         remixType,
         parentAsset,
         originalUrl,
-        cleanUrl,
         watermarkedUrl,
       };
       setCreations((prev) => [newCreation, ...prev]);
@@ -294,7 +293,8 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
               originalUrl,
               registeredByWallet,
               registeredIpId,
-              ...(c.cleanUrl && { url: c.cleanUrl }),
+              childIpId: registeredIpId,
+              ...(originalUrl && { url: originalUrl }),
             };
           }
           return c;
@@ -319,6 +319,23 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
         }
 
         return updated;
+      });
+    },
+    [],
+  );
+
+  const updateCreationUploadStatus = useCallback(
+    (id: string, isUploading: boolean) => {
+      setCreations((prev) => {
+        return prev.map((c) => {
+          if (c.id === id) {
+            return {
+              ...c,
+              isUploadingUrl: isUploading,
+            };
+          }
+          return c;
+        });
       });
     },
     [],
@@ -438,6 +455,7 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
       creations,
       addCreation,
       updateCreationWithOriginalUrl,
+      updateCreationUploadStatus,
       getRegisteredIpIdsForWallet,
       isCreationUnlockedByWallet,
       removeCreation,
@@ -457,6 +475,7 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
       creations,
       addCreation,
       updateCreationWithOriginalUrl,
+      updateCreationUploadStatus,
       getRegisteredIpIdsForWallet,
       isCreationUnlockedByWallet,
       removeCreation,
