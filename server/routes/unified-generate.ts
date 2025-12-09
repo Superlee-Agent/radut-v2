@@ -1,5 +1,8 @@
 import { RequestHandler } from "express";
+import OpenAI from "openai";
 import { FormData, Blob } from "formdata-node";
+
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 // Generate a hash-based color from the prompt
 function getColorFromPrompt(text: string): string {
@@ -125,7 +128,7 @@ export const unifiedGenerateImage: RequestHandler = async (req, res) => {
       console.log("✅ Demo image generated successfully");
     } else {
       // Production mode: use OpenAI
-      const result = await getOpenAIClient().images.generate({
+      const result = await client.images.generate({
         model: "gpt-image-1",
         prompt,
         size: "1024x1024",
@@ -278,7 +281,7 @@ export const unifiedGenerateImageWithWatermark: RequestHandler = async (
       console.log("✅ Demo image generated successfully");
     } else {
       // Production mode: use OpenAI
-      const result = await getOpenAIClient().images.generate({
+      const result = await client.images.generate({
         model: "gpt-image-1",
         prompt,
         size: "1024x1024",
