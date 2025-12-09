@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
+import { validateOpenAIApiKey } from "./utils/openai-client.js";
 import { handleUpload } from "./routes/upload.js";
 import { handleIpfsUpload, handleIpfsUploadJson } from "./routes/ipfs.js";
 import { handleDescribe } from "./routes/describe.js";
@@ -79,6 +80,9 @@ async function fetchParentIpDetails(
 }
 
 export async function createServer() {
+  // Validate critical environment variables at startup
+  validateOpenAIApiKey();
+
   const app = express();
 
   const { handleCheckImageSimilarity } = await import(
