@@ -23,9 +23,10 @@ interface CompactResultCardProps {
   setIsExpanded?: Dispatch<SetStateAction<boolean>>;
   parentAsset?: any;
   originalUrl?: string;
-  cleanUrl?: string;
+  watermarkedUrl?: string;
   registeredIpId?: string;
   creationId?: string;
+  childIpId?: string;
   onUnlockWatermark?: (originalUrl: string) => void;
   onDelete?: () => void;
 }
@@ -42,9 +43,10 @@ const CompactResultCard = ({
   setIsExpanded: externalSetIsExpanded,
   parentAsset,
   originalUrl,
-  cleanUrl,
+  watermarkedUrl,
   registeredIpId: propsRegisteredIpId,
   creationId,
+  childIpId,
   onUnlockWatermark,
   onDelete,
 }: CompactResultCardProps) => {
@@ -71,15 +73,19 @@ const CompactResultCard = ({
 
   // Calculate display URL based on registration state and available URLs
   const getDisplayUrl = (): string => {
-    // If registered and cleanUrl is available, use clean version
-    if (registeredIpId && cleanUrl) {
-      return cleanUrl;
+    // If has childIpId (registered derivative) - show original image regardless of license token status
+    if (childIpId && originalUrl) {
+      return originalUrl;
     }
-    // If registered but no cleanUrl, try to use originalUrl
+    // If registered via registeredIpId (backward compatibility) and has originalUrl
     if (registeredIpId && originalUrl) {
       return originalUrl;
     }
-    // Default to imageUrl (watermarked for paid remix)
+    // If has watermarkedUrl (not registered yet), use it
+    if (watermarkedUrl) {
+      return watermarkedUrl;
+    }
+    // Default to imageUrl
     return imageUrl;
   };
 
@@ -94,13 +100,13 @@ const CompactResultCard = ({
     console.log(
       `[CompactResultCard] Updated displayUrl based on registration state`,
       {
-        registeredIpId,
-        hasCleanUrl: !!cleanUrl,
+        hasChildIpId: !!childIpId,
+        hasWatermarkedUrl: !!watermarkedUrl,
         hasOriginalUrl: !!originalUrl,
         displayUrl: newDisplayUrl,
       },
     );
-  }, [registeredIpId, cleanUrl, originalUrl, imageUrl]);
+  }, [childIpId, watermarkedUrl, originalUrl, imageUrl]);
 
   // Check if current wallet has already unlocked this creation
   useEffect(() => {
