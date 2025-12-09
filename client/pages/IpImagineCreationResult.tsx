@@ -132,6 +132,16 @@ const IpImagineCreationResult = () => {
     context.refreshGuestCreations();
   }, [guestMode, context]);
 
+  // Auto-disable guest mode when wallet connects
+  useEffect(() => {
+    if (authenticated && guestMode) {
+      console.log(
+        "[IpImagineCreationResult] Wallet connected - auto-disabling guest mode",
+      );
+      setGuestMode(false);
+    }
+  }, [authenticated]);
+
   const handleDownload = () => {
     if (!displayUrl) return;
     const link = document.createElement("a");
@@ -228,9 +238,12 @@ const IpImagineCreationResult = () => {
   };
 
   const handleToggleGuest = () => {
-    if (!guestMode && authenticated) {
-      // If toggling to guest mode from authenticated, disconnect wallet
-      handleWalletDisconnect();
+    // Prevent toggling when wallet is connected (strict isolation)
+    if (authenticated) {
+      console.log(
+        "[IpImagineCreationResult] Guest toggle disabled - wallet is connected",
+      );
+      return;
     }
     setGuestMode(!guestMode);
   };
@@ -249,6 +262,14 @@ const IpImagineCreationResult = () => {
           : handleWalletConnect
       }
       showGuest={true}
+      isWalletConnected={authenticated}
+      connectedAddressLabel={
+        authenticated && primaryWalletAddress
+          ? primaryWalletAddress.substring(0, 6) +
+            "..." +
+            primaryWalletAddress.substring(primaryWalletAddress.length - 4)
+          : undefined
+      }
     />
   );
 
