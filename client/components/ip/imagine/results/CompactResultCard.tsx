@@ -87,11 +87,13 @@ const CompactResultCard = ({
   };
 
   const [displayUrl, setDisplayUrl] = useState<string>(getDisplayUrl());
+  const [imageLoadError, setImageLoadError] = useState<boolean>(false);
 
   // Update display URL when registration state or URLs change
   useEffect(() => {
     const newDisplayUrl = getDisplayUrl();
     setDisplayUrl(newDisplayUrl);
+    setImageLoadError(false);
     console.log(
       `[CompactResultCard] Updated displayUrl based on registration state`,
       {
@@ -297,17 +299,53 @@ const CompactResultCard = ({
           animate={{ opacity: 1 }}
         >
           <div className="w-full h-full flex items-center justify-center">
-            {type === "image" ? (
+            {imageLoadError ? (
+              <div className="flex flex-col items-center justify-center gap-3 p-6">
+                <svg
+                  className="w-12 h-12 text-red-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <div className="text-center">
+                  <p className="text-red-400 font-semibold mb-1">
+                    Failed to Load Image
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    The image URL may be invalid or expired
+                  </p>
+                </div>
+              </div>
+            ) : type === "image" ? (
               <img
                 src={displayUrl}
                 alt="Generation result"
                 className="w-full h-full object-contain"
+                onError={() => {
+                  console.error(
+                    `[CompactResultCard] Failed to load image: ${displayUrl}`,
+                  );
+                  setImageLoadError(true);
+                }}
               />
             ) : (
               <video
                 src={displayUrl}
                 className="w-full h-full object-contain"
                 controls
+                onError={() => {
+                  console.error(
+                    `[CompactResultCard] Failed to load video: ${displayUrl}`,
+                  );
+                  setImageLoadError(true);
+                }}
               />
             )}
           </div>
@@ -613,13 +651,36 @@ const CompactResultCard = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       onClick={() => setIsExpanded(true)}
-      className="relative w-40 h-40 rounded-lg overflow-hidden bg-black border-2 border-[#FF4DA6]/50 shadow-lg group cursor-pointer hover:border-[#FF4DA6] hover:shadow-lg hover:shadow-[#FF4DA6]/20 transition-all"
+      className="relative w-40 h-40 rounded-lg overflow-hidden bg-black border-2 border-[#FF4DA6]/50 shadow-lg group cursor-pointer hover:border-[#FF4DA6] hover:shadow-lg hover:shadow-[#FF4DA6]/20 transition-all flex items-center justify-center"
     >
-      {type === "image" ? (
+      {imageLoadError ? (
+        <div className="flex flex-col items-center justify-center gap-2 w-full h-full bg-red-900/20">
+          <svg
+            className="w-8 h-8 text-red-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p className="text-xs text-red-400 font-medium">Load failed</p>
+        </div>
+      ) : type === "image" ? (
         <img
           src={displayUrl}
           alt="Generation result"
           className="w-full h-full object-cover"
+          onError={() => {
+            console.error(
+              `[CompactResultCard] Failed to load image: ${displayUrl}`,
+            );
+            setImageLoadError(true);
+          }}
         />
       ) : (
         <video src={displayUrl} className="w-full h-full object-cover" />
