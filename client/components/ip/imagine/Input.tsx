@@ -100,9 +100,11 @@ const IpImagineInput = ({
           onClick={() => {
             navigate("/ip-imagine/result");
           }}
-          disabled={!resultUrl && !waiting && !guestMode}
+          disabled={
+            !resultUrl && !waiting && !guestMode && creations.length === 0
+          }
           className={`flex-shrink-0 p-2 sm:p-1.5 rounded-lg active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/30 ${
-            waiting || resultUrl || guestMode
+            waiting || resultUrl || guestMode || creations.length > 0
               ? "text-[#FF4DA6] bg-[#FF4DA6]/10"
               : "text-[#FF4DA6] hover:bg-[#FF4DA6]/10"
           }`}
