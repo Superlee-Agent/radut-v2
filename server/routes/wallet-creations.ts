@@ -15,14 +15,14 @@ interface WalletCreation {
   parentAsset?: any;
   original_url?: string;
   originalUrl?: string;
-  clean_url?: string;
-  cleanUrl?: string;
   watermarked_url?: string;
   watermarkedUrl?: string;
   registered_by_wallet?: string;
   registeredByWallet?: string;
   registered_ip_id?: string;
   registeredIpId?: string;
+  child_ip_id?: string;
+  childIpId?: string;
 }
 
 const getSupabaseClient = (): SupabaseClient | null => {
@@ -53,12 +53,12 @@ const toDbRow = (creation: WalletCreation) => ({
   remix_type: creation.remixType || creation.remix_type || null,
   parent_asset: creation.parentAsset || creation.parent_asset || null,
   original_url: creation.originalUrl || creation.original_url || null,
-  clean_url: creation.cleanUrl || creation.clean_url || null,
   watermarked_url: creation.watermarkedUrl || creation.watermarked_url || null,
   registered_by_wallet:
     creation.registeredByWallet || creation.registered_by_wallet || null,
   registered_ip_id:
     creation.registeredIpId || creation.registered_ip_id || null,
+  child_ip_id: creation.childIpId || creation.child_ip_id || null,
 });
 
 export const handleGetWalletCreations: RequestHandler = async (req, res) => {
@@ -123,10 +123,10 @@ export const handleGetWalletCreations: RequestHandler = async (req, res) => {
       remixType: creation.remix_type,
       parentAsset: creation.parent_asset,
       originalUrl: creation.original_url,
-      cleanUrl: creation.clean_url,
       watermarkedUrl: creation.watermarked_url,
       registeredByWallet: creation.registered_by_wallet,
       registeredIpId: creation.registered_ip_id,
+      childIpId: creation.child_ip_id,
     }));
 
     return res.json({ ok: true, creations: transformedCreations });
