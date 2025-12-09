@@ -96,6 +96,25 @@ const IpAssistant = () => {
     };
   }, [remixAnalysisOpen, remixAnalysisData]);
 
+  // Cleanup pending async operations on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      // Cancel all pending fetch requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (ownerSearchControllerRef.current) {
+        ownerSearchControllerRef.current.abort();
+      }
+      // Clear all pending timeouts
+      pendingTimeoutsRef.current.forEach((timeout) => {
+        clearTimeout(timeout);
+      });
+      pendingTimeoutsRef.current.clear();
+    };
+  }, []);
+
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -112,6 +131,34 @@ const IpAssistant = () => {
   const expandedMediaContainerRef = useRef<HTMLDivElement | null>(null);
   const ownerSearchControllerRef = useRef<AbortController | null>(null);
   const ownerSearchRequestIdRef = useRef<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const pendingTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  const mountedRef = useRef(true);
+
+  // Helper function to set timeout safely (cleans up on unmount)
+  const safeSetTimeout = useCallback((callback: () => void, delay: number) => {
+    const timeout = setTimeout(() => {
+      if (mountedRef.current) {
+        callback();
+      }
+    }, delay);
+    pendingTimeoutsRef.current.add(timeout);
+    return timeout;
+  }, []);
+
+  // Helper function to clear a tracked timeout
+  const safeClearTimeout = useCallback((timeout: NodeJS.Timeout) => {
+    clearTimeout(timeout);
+    pendingTimeoutsRef.current.delete(timeout);
+  }, []);
+
+  // Helper function to initialize AbortController for fetch operations
+  const getAbortSignal = useCallback(() => {
+    if (!abortControllerRef.current) {
+      abortControllerRef.current = new AbortController();
+    }
+    return abortControllerRef.current.signal;
+  }, []);
 
   // throttled scroll helpers to avoid excessive layout work on mobile
   const lastScrollRef = useRef<number>(0);
@@ -131,7 +178,9 @@ const IpAssistant = () => {
               block: "end",
               inline: "nearest",
             });
-          } catch (e) {}
+          } catch (e) {
+            console.warn("[IpAssistant] Scroll to element failed:", e);
+          }
           scrollRafRef.current = null;
         });
       }
@@ -160,7 +209,9 @@ const IpAssistant = () => {
           });
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("[IpAssistant] Scroll to bottom failed:", e);
+    }
     lastScrollRef.current = Date.now();
   }, []);
 
@@ -487,7 +538,9 @@ const IpAssistant = () => {
               setTimeout(() => {
                 if (autoScrollNextRef.current) scrollToBottomImmediate();
               }, 0);
-            } catch (e) {}
+            } catch (e) {
+              console.warn("[IpAssistant] Auto-scroll scheduling failed:", e);
+            }
           });
         }
         return next;
@@ -1252,15 +1305,19 @@ const IpAssistant = () => {
         inputRef.current?.blur?.();
         try {
           (document.activeElement as HTMLElement | null)?.blur?.();
-        } catch (e) {}
+        } catch (e) {
+          console.warn("[IpAssistant] Blur active element failed:", e);
+        }
         setTimeout(() => {
           inputRef.current?.blur?.();
           try {
             (document.activeElement as HTMLElement | null)?.blur?.();
-          } catch (e) {}
+          } catch (e) {
+            console.warn("[IpAssistant] Blur element in timeout failed:", e);
+          }
         }, 50);
       } catch (e) {
-        // ignore
+        console.warn("[IpAssistant] Blur operation failed:", e);
       }
     }
   }, [
