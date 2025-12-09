@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 
 interface FlyingImageAnimationProps {
   isActive: boolean;
@@ -12,33 +11,49 @@ const FlyingImageAnimation = ({
   targetRef,
   onComplete,
 }: FlyingImageAnimationProps) => {
-  const startRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<Animation | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isActive || !targetRef.current || !startRef.current) return;
+    if (!isActive) {
+      // Clean up when animation is disabled
+      if (animationRef.current) {
+        animationRef.current.cancel();
+        animationRef.current = null;
+      }
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
 
-    const startRect = startRef.current.getBoundingClientRect();
+    if (!targetRef.current || !containerRef.current) return;
+
+    // Calculate animation trajectory from current position to target
+    const containerRect = containerRef.current.getBoundingClientRect();
     const targetRect = targetRef.current.getBoundingClientRect();
 
-    const startX = startRect.left + startRect.width / 2;
-    const startY = startRect.top + startRect.height / 2;
+    const startX = containerRect.left + containerRect.width / 2;
+    const startY = containerRect.top + containerRect.height / 2;
     const endX = targetRect.left + targetRect.width / 2;
     const endY = targetRect.top + targetRect.height / 2;
 
     const deltaX = endX - startX;
     const deltaY = endY - startY;
 
-    const animationElement = startRef.current;
-    if (animationElement) {
-      const animation = animationElement.animate(
+    // Play animation
+    try {
+      animationRef.current = containerRef.current.animate(
         [
           {
-            transform: `translate(0, 0) scale(1)`,
-            opacity: 1,
+            transform: "translate(0, 0) scale(1)",
+            opacity: "1",
           },
           {
             transform: `translate(${deltaX}px, ${deltaY}px) scale(0.3)`,
-            opacity: 0,
+            opacity: "0",
           },
         ],
         {
@@ -48,28 +63,36 @@ const FlyingImageAnimation = ({
         },
       );
 
-      const timer = setTimeout(() => {
+      // Call onComplete callback after animation finishes
+      timerRef.current = setTimeout(() => {
         onComplete?.();
       }, 800);
-
-      return () => {
-        animation.cancel();
-        clearTimeout(timer);
-      };
+    } catch (error) {
+      console.warn("[FlyingImageAnimation] Animation failed:", error);
+      onComplete?.();
     }
+
+    // Cleanup function
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.cancel();
+        animationRef.current = null;
+      }
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [isActive, targetRef, onComplete]);
 
   if (!isActive) return null;
 
   return (
     <div
-      ref={startRef}
+      ref={containerRef}
       className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"
     >
-      <motion.div
-        initial={{ opacity: 1, scale: 1 }}
-        className="w-16 h-16 rounded-lg bg-gradient-to-br from-[#FF4DA6] to-[#FF4DA6]/60 border-2 border-[#FF4DA6] shadow-lg flex items-center justify-center"
-      >
+      <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-[#FF4DA6] to-[#FF4DA6]/60 border-2 border-[#FF4DA6] shadow-lg flex items-center justify-center">
         <svg
           className="w-8 h-8 text-white"
           fill="none"
@@ -83,7 +106,7 @@ const FlyingImageAnimation = ({
             d="M13 10V3L4 14h7v7l9-11h-7z"
           />
         </svg>
-      </motion.div>
+      </div>
     </div>
   );
 };
