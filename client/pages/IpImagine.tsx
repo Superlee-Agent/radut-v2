@@ -303,7 +303,7 @@ const IpImagine = () => {
 
       // Set all state synchronously to avoid race conditions
       setCurrentRemixType(remixType);
-      setCurrentParentAsset(remixType === "paid" ? asset : null);
+      setCurrentParentAsset(asset);
       setPreviewImages({
         remixImage: {
           blob,
