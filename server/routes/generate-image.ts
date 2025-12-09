@@ -1,8 +1,6 @@
 import { RequestHandler } from "express";
-import OpenAI from "openai";
 import { FormData, Blob } from "formdata-node";
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+import { getOpenAIClient } from "../utils/openai-client.js";
 
 // 🔹 TEXT → IMAGE
 export const generateImage: RequestHandler = async (req, res) => {
@@ -10,7 +8,7 @@ export const generateImage: RequestHandler = async (req, res) => {
     const prompt = req.body.prompt?.trim();
     if (!prompt) return res.status(400).json({ error: "Missing prompt text" });
 
-    const result = await client.images.generate({
+    const result = await getOpenAIClient().images.generate({
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
