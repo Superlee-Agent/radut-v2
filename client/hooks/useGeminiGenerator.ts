@@ -39,7 +39,6 @@ const useGeminiGenerator = () => {
     null;
 
   const generate = async (mode: ToggleMode, options: GenerationOptions) => {
-    const demoModeParam = false; // Wallet-only mode always uses real API
     if (mode === "video") {
       setError("Video generation is coming soon!");
       return;
@@ -64,7 +63,6 @@ const useGeminiGenerator = () => {
           const result = await openaiService.editImageWithWatermark(
             options.prompt,
             options.image,
-            demoModeParam,
           );
           generatedUrl = result.url;
           originalUrl = result.originalUrl;
@@ -72,7 +70,6 @@ const useGeminiGenerator = () => {
           generatedUrl = await openaiService.editImage(
             options.prompt,
             options.image,
-            demoModeParam,
           );
           originalUrl = generatedUrl;
         }
@@ -82,7 +79,6 @@ const useGeminiGenerator = () => {
           console.log("🎨 Generating image with server-side watermark");
           const result = await openaiService.generateImageFromTextWithWatermark(
             options.prompt,
-            demoModeParam,
           );
           generatedUrl = result.url;
           originalUrl = result.originalUrl;
@@ -90,7 +86,6 @@ const useGeminiGenerator = () => {
           // Standard generation without watermark
           generatedUrl = await openaiService.generateImageFromText(
             options.prompt,
-            demoModeParam,
           );
           originalUrl = generatedUrl;
         }
