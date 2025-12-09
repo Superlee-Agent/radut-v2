@@ -1,18 +1,17 @@
 export const generateImageFromText = async (
   prompt: string,
-  guestMode: boolean = false,
 ): Promise<string> => {
   if (!prompt) throw new Error("Prompt is required.");
 
   try {
-    const endpoint = guestMode ? "/api/demo-generate" : "/api/generate";
-    const response = await fetch(endpoint, {
+    const response = await fetch("/api/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         prompt: prompt,
+        mode: "demo",
       }),
     });
 
@@ -42,21 +41,18 @@ export const generateImageFromText = async (
 
 export const generateImageFromTextWithWatermark = async (
   prompt: string,
-  guestMode: boolean = false,
 ): Promise<{ url: string; originalUrl: string }> => {
   if (!prompt) throw new Error("Prompt is required.");
 
   try {
-    const endpoint = guestMode
-      ? "/api/demo-generate"
-      : "/api/generate-with-watermark";
-    const response = await fetch(endpoint, {
+    const response = await fetch("/api/generate-with-watermark", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         prompt: prompt,
+        mode: "demo",
       }),
     });
 
@@ -91,7 +87,6 @@ export const generateImageFromTextWithWatermark = async (
 export const editImage = async (
   prompt: string,
   image: { imageBytes: string; mimeType: string },
-  guestMode: boolean = false,
 ): Promise<string> => {
   if (!prompt) throw new Error("Prompt is required.");
   if (!image || !image.imageBytes)
@@ -108,9 +103,9 @@ export const editImage = async (
     const formData = new FormData();
     formData.append("image", imageBlob, "image.png");
     formData.append("prompt", prompt);
+    formData.append("mode", "demo");
 
-    const endpoint = guestMode ? "/api/demo-edit" : "/api/edit";
-    const response = await fetch(endpoint, {
+    const response = await fetch("/api/edit", {
       method: "POST",
       body: formData,
     });
@@ -142,9 +137,8 @@ export const editImage = async (
 export const editImageWithWatermark = async (
   prompt: string,
   image: { imageBytes: string; mimeType: string },
-  guestMode: boolean = false,
 ): Promise<{ url: string; originalUrl: string }> => {
-  const editedUrl = await editImage(prompt, image, guestMode);
+  const editedUrl = await editImage(prompt, image);
 
   try {
     const { addCanvasWatermark } = await import("@/lib/utils/add-watermark");
@@ -156,18 +150,15 @@ export const editImageWithWatermark = async (
   }
 };
 
-export const upscaleImage = async (
-  image: {
-    imageBytes: string;
-    mimeType: string;
-  },
-  guestMode: boolean = false,
-): Promise<string> => {
+export const upscaleImage = async (image: {
+  imageBytes: string;
+  mimeType: string;
+}): Promise<string> => {
   const prompt =
     "Create a high-resolution upscaled version of this image with enhanced details and improved clarity without changing the composition.";
 
   try {
-    return await editImage(prompt, image, guestMode);
+    return await editImage(prompt, image);
   } catch (error) {
     throw error;
   }
