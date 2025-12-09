@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { SearchResult, PreviewImage } from "./types";
+import type { SearchResult } from "./types";
 
 interface AddRemixImageModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ export const AddRemixImageModal = ({
   isOpen,
   onClose,
   onSelectImage,
-  isLoading = false,
+  isLoading: _isLoading = false,
 }: AddRemixImageModalProps) => {
   const [searchInput, setSearchInput] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
