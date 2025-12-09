@@ -233,7 +233,6 @@ const IpAssistant = () => {
   const [loadingRegisterFor, setLoadingRegisterFor] = useState<string | null>(
     null,
   );
-  const [guestMode, setGuestMode] = useState<boolean>(false);
   const [toolsOpen, setToolsOpen] = useState<boolean>(false);
   const [previewImages, setPreviewImages] = useState<PreviewImagesState>({
     remixImage: null,
@@ -1082,7 +1081,7 @@ const IpAssistant = () => {
               const derivativesAllowed = hashCheck.derivativesAllowed !== false;
               const warningText = derivativesAllowed
                 ? `⚠️ This is copyrighted content. Remixing is allowed.`
-                : `⚠��� This is copyrighted content.`;
+                : `⚠️ This is copyrighted content.`;
 
               const metadata = hashCheck.metadata || {};
               const warningMessage: Message = {
@@ -1530,8 +1529,6 @@ const IpAssistant = () => {
 
   const headerActions = (
     <ChatHeaderActions
-      guestMode={guestMode}
-      onToggleGuest={() => setGuestMode((value) => !value)}
       walletButtonText={walletButtonText}
       walletButtonDisabled={walletButtonDisabled}
       onWalletClick={handleWalletButtonClick}
@@ -1874,7 +1871,7 @@ const IpAssistant = () => {
                             !!getLicenseSettingsByGroup(Number(codeStr));
                           const canRegister =
                             canRegisterByText || canRegisterByGroup;
-                          const isAuthEnabled = guestMode || authenticated;
+                          const isAuthEnabled = authenticated;
                           if (!canRegister) return null;
                           if (!isAuthEnabled) {
                             return (
@@ -1882,7 +1879,7 @@ const IpAssistant = () => {
                                 {" "}
                                 <span className="mx-1 text-slate-400">��</span>
                                 <span className="text-[#FF4DA6]/60 text-xs">
-                                  (Connect wallet or use guest mode to register)
+                                  (Connect wallet to register)
                                 </span>
                               </>
                             );
@@ -2249,15 +2246,10 @@ const IpAssistant = () => {
                             ctx?.name || `image-${Date.now()}.jpg`,
                             { type: blob.type || "image/jpeg" },
                           );
-                          let ethProvider: any = guestMode
-                            ? undefined
-                            : (window as any).ethereum;
+                          let ethProvider: any = (window as any).ethereum;
+
                           try {
-                            if (
-                              !guestMode &&
-                              wallets &&
-                              wallets[0]?.getEthereumProvider
-                            ) {
+                            if (wallets && wallets[0]?.getEthereumProvider) {
                               ethProvider =
                                 await wallets[0].getEthereumProvider();
                             }
@@ -2281,19 +2273,17 @@ const IpAssistant = () => {
                           !analysisContextsRef.current.get(
                             (msg as any).ctxKey || "",
                           )?.blob ||
-                          (!guestMode && !authenticated)
+                          !authenticated
                         }
                         title={
-                          !guestMode && !authenticated
-                            ? "Connect wallet or enable guest mode to register"
-                            : ""
+                          !authenticated ? "Connect wallet to register" : ""
                         }
                         className="rounded-md bg-[#FF4DA6]/20 px-4 py-2 text-sm font-semibold text-[#FF4DA6] hover:bg-[#FF4DA6]/30 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {registerState.status === "minting"
                           ? "Registering���"
-                          : !guestMode && !authenticated
-                            ? "Register IP (requires auth)"
+                          : !authenticated
+                            ? "Register IP (requires wallet)"
                             : "Register IP"}
                       </button>
                       <div className="text-xs text-slate-400">
@@ -2628,7 +2618,7 @@ const IpAssistant = () => {
           const warningMessage: Message = {
             id: `msg-${Date.now()}`,
             from: "bot",
-            text: "⚠�� Remix images cannot be registered. Please clear the image to register this IP asset.",
+            text: "⚠️ Remix images cannot be registered. Please clear the image to register this IP asset.",
             ts: getCurrentTimestamp(),
           };
           setRemixMode(false);
@@ -3432,7 +3422,7 @@ const IpAssistant = () => {
                     key={remixConfig.licenseTermsId}
                     type="button"
                     onClick={() => setShowRemixMenu(!showRemixMenu)}
-                    disabled={!guestMode && !authenticated}
+                    disabled={!authenticated}
                     className="text-sm px-4 py-2.5 rounded-lg bg-[#FF4DA6] text-white font-semibold transition-all hover:shadow-lg hover:shadow-[#FF4DA6]/25 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/50"
                   >
                     {remixConfig.type === "paid"
@@ -3461,7 +3451,7 @@ const IpAssistant = () => {
       )}
 
       <AnimatePresence>
-        {showRemixMenu && (guestMode || authenticated) && expandedAsset ? (
+        {showRemixMenu && authenticated && expandedAsset ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
