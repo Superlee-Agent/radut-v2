@@ -13,14 +13,13 @@ import {
   PILFlavor,
   WIP_TOKEN_ADDRESS,
 } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther, http } from "viem";
+import { createWalletClient, custom, parseEther } from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
   requiresSubmitReview,
   isAiGeneratedGroup,
 } from "@/lib/groupLicense";
-import { privateKeyToAccount } from "viem/accounts";
 
 export type RegisterState = {
   status:
