@@ -21,11 +21,11 @@ import {
   handleDeleteRemixHash,
 } from "./routes/remix-hash-whitelist.js";
 import {
-  handleGetGuestCreations,
-  handleAddGuestCreation,
-  handleDeleteGuestCreation,
-  handleClearGuestCreations,
-} from "./routes/guest-creations.js";
+  handleGetWalletCreations,
+  handleAddWalletCreation,
+  handleDeleteWalletCreation,
+  handleUpdateWalletCreation,
+} from "./routes/wallet-creations.js";
 // Sharp-dependent routes are lazy-loaded to avoid loading sharp during build
 
 async function fetchParentIpDetails(
@@ -93,15 +93,11 @@ export async function createServer() {
   const { handleCaptureAssetVision } = await import(
     "./routes/capture-asset-vision.js"
   );
-  const { generateImage, editImage } = await import(
-    "./routes/generate-image.js"
-  );
-  const { generateImageWithWatermark } = await import(
-    "./routes/generate-image-watermark.js"
-  );
-  const { demoGenerateImage, demoEditImage } = await import(
-    "./routes/demo-generate.js"
-  );
+  const {
+    unifiedGenerateImage,
+    unifiedEditImage,
+    unifiedGenerateImageWithWatermark,
+  } = await import("./routes/unified-generate.js");
 
   // Setup multer for image upload handling in watermark verification
   const upload = multer({
@@ -128,6 +124,8 @@ export async function createServer() {
         "127.0.0.1",
         ".vercel.app",
         ".netlify.app",
+        ".fly.dev",
+        "builder.io",
       ].concat(process.env.APP_ORIGIN ? [process.env.APP_ORIGIN] : []);
 
       const isAllowed = allowedOrigins.some((allowedOrigin) =>
@@ -225,11 +223,11 @@ export async function createServer() {
   app.post("/api/_admin/clear-remix-hashes", handleClearRemixHashes);
   app.post("/api/_admin/delete-remix-hash", handleDeleteRemixHash);
 
-  // Guest creations endpoints
-  app.get("/api/guest-creations", handleGetGuestCreations);
-  app.post("/api/guest-creations", handleAddGuestCreation);
-  app.delete("/api/guest-creations/:id", handleDeleteGuestCreation);
-  app.post("/api/guest-creations/clear", handleClearGuestCreations);
+  // Wallet creations endpoints (only wallet mode supported)
+  app.get("/api/wallet-creations/:walletAddress", handleGetWalletCreations);
+  app.post("/api/wallet-creations", handleAddWalletCreation);
+  app.delete("/api/wallet-creations/:id", handleDeleteWalletCreation);
+  app.post("/api/wallet-creations/:id", handleUpdateWalletCreation);
 
   // Capture asset vision endpoint (silently on asset click)
   app.post("/api/capture-asset-vision", handleCaptureAssetVision);
@@ -251,15 +249,15 @@ export async function createServer() {
   // Analyze image with Vision API endpoint
   app.post("/api/analyze-image-vision", handleAnalyzeImageVision);
 
-  // OpenAI DALL-E image generation endpoints
-  app.post("/api/generate-image", generateImage);
-  app.post("/api/generate", generateImage);
-  app.post("/api/edit", upload.single("image"), editImage);
-  app.post("/api/generate-with-watermark", generateImageWithWatermark);
+  // OpenAI DALL-E image generation endpoints (unified handlers supporting both demo and production modes)
+  app.post("/api/generate-image", unifiedGenerateImage);
+  app.post("/api/generate", unifiedGenerateImage);
+  app.post("/api/edit", upload.single("image"), unifiedEditImage);
+  app.post("/api/generate-with-watermark", unifiedGenerateImageWithWatermark);
 
-  // Demo mode endpoints (realistic dummy images)
-  app.post("/api/demo-generate", demoGenerateImage);
-  app.post("/api/demo-edit", upload.single("image"), demoEditImage);
+  // Demo mode endpoints (now handled by unified endpoints with mode parameter)
+  app.post("/api/demo-generate", unifiedGenerateImage);
+  app.post("/api/demo-edit", upload.single("image"), unifiedEditImage);
 
   // Debug endpoint to fetch parent IP details for a given IP ID
   app.get("/api/_debug/parent-details/:ipId", async (req, res) => {
