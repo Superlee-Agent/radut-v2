@@ -5,6 +5,7 @@ import {
   MutableRefObject,
   RefObject,
   SetStateAction,
+  useCallback,
   useRef,
   useState,
 } from "react";
@@ -63,6 +64,11 @@ const IpImagineInput = ({
   const [showFlyingAnimation, setShowFlyingAnimation] = useState(false);
   const galleryButtonRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Memoize callback to prevent animation from restarting on every render
+  const handleAnimationComplete = useCallback(() => {
+    setShowFlyingAnimation(false);
+  }, []);
 
   return (
     <form
@@ -415,7 +421,7 @@ const IpImagineInput = ({
       <FlyingImageAnimation
         isActive={showFlyingAnimation}
         targetRef={galleryButtonRef}
-        onComplete={() => setShowFlyingAnimation(false)}
+        onComplete={handleAnimationComplete}
       />
     </form>
   );
