@@ -62,13 +62,6 @@ const LicensingFormComponent = (
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
 
-  // Get wallet address for token validation
-  const walletAddress = wallets?.[0]?.address || undefined;
-
-  // Token validation hook
-  const { balance, validateForRegistration, getWarningMessage, getTotalCost } =
-    useTokenValidation(walletAddress, "mainnet");
-
   // State
   const [title, setTitle] = useState("AI Generated Image");
   const [description, setDescription] = useState(
