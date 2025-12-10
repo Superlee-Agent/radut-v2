@@ -6,6 +6,7 @@ export type BotMessage = {
   verification?: { label: string; code: string } | string | null;
   ctxKey?: string;
   isProcessing?: boolean;
+  analysisResult?: any;
   action?: {
     type: "remix";
     label: string;
