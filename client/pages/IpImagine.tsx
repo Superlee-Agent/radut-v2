@@ -69,9 +69,6 @@ const IpImagine = () => {
   >(null);
   const [currentParentAsset, setCurrentParentAsset] = useState<any>(null);
   const [expandedAsset, setExpandedAsset] = useState<any>(null);
-  const [capturedAssetIds, setCapturedAssetIds] = useState<Set<string>>(
-    new Set(),
-  );
 
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
@@ -266,7 +263,15 @@ const IpImagine = () => {
     asset: any,
     remixType: "paid" | "free",
   ) => {
-    console.log("🎯 handleRemixSelected called with remixType:", remixType);
+    console.log("🎯 handleRemixSelected called with:", {
+      remixType,
+      asset: {
+        ipId: asset?.ipId,
+        title: asset?.title,
+        mediaUrl: asset?.mediaUrl ? "✓" : "✗",
+        thumbnailUrl: asset?.thumbnailUrl ? "✓" : "✗",
+      },
+    });
     setRemixLoading(true);
     try {
       // Validation: Warn if wallet not fully connected for paid remix
@@ -276,9 +281,21 @@ const IpImagine = () => {
         return;
       }
 
+      if (!asset) {
+        throw new Error("Asset data is missing");
+      }
+
       const imageUrl = asset.mediaUrl || asset.thumbnailUrl;
+      console.log("📸 Image URL selected:", {
+        imageUrl: imageUrl ? imageUrl.substring(0, 100) : "undefined",
+        fromMediaUrl: !!asset.mediaUrl,
+        fromThumbnailUrl: !!asset.thumbnailUrl,
+      });
+
       if (!imageUrl) {
-        throw new Error("No image URL available for this asset");
+        throw new Error(
+          `No image URL available for this asset. mediaUrl: ${asset.mediaUrl}, thumbnailUrl: ${asset.thumbnailUrl}`,
+        );
       }
 
       const response = await fetch(imageUrl, {
@@ -287,7 +304,9 @@ const IpImagine = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch image: ${response.statusText} (${response.status})`,
+        );
       }
 
       let blob = await response.blob();
@@ -299,7 +318,7 @@ const IpImagine = () => {
       }
 
       const url = URL.createObjectURL(blob);
-      const fileName = asset.title || "remix-image";
+      const fileName = asset.title || asset.name || "remix-image";
 
       // Set all state synchronously to avoid race conditions
       setCurrentRemixType(remixType);
@@ -318,6 +337,8 @@ const IpImagine = () => {
         remixType,
         "Blob type:",
         blob.type,
+        "File name:",
+        fileName,
       );
 
       setStatusText(
@@ -331,108 +352,18 @@ const IpImagine = () => {
           block: "nearest",
         });
       }, 300);
-    } catch (error) {
-      console.error("Error loading remix image:", error);
-      setStatusText("❌ Failed to load remix image. Please try again.");
+    } catch (error: any) {
+      console.error("❌ Error loading remix image:", {
+        message: error?.message,
+        stack: error?.stack,
+      });
+      setStatusText(
+        `❌ Failed to load remix: ${error?.message || "Unknown error"}`,
+      );
     } finally {
       setRemixLoading(false);
     }
   };
-
-  // Helper function to capture asset data to whitelist (fires in background)
-  const captureAssetToWhitelist = (asset: any) => {
-    if (!asset?.ipId || !asset?.mediaUrl) return;
-
-    (async () => {
-      try {
-        // Fetch the image
-        const response = await fetch(asset.mediaUrl);
-        if (!response.ok) {
-          console.warn(
-            `Failed to fetch image for whitelist: ${response.status}`,
-          );
-          return;
-        }
-
-        const blob = await response.blob();
-
-        // Use full quality for capture (no compression) to ensure accurate baseline
-        // pHash threshold (85%) tolerates compression differences when user uploads
-        const hash = await calculateBlobHash(blob);
-        const pHash = await calculatePerceptualHash(blob);
-
-        // Get vision description
-        let visionDescription: string | undefined;
-        try {
-          const visionResult = await getImageVisionDescription(blob);
-          if (visionResult?.success) {
-            visionDescription = visionResult.description;
-          }
-        } catch (visionError) {
-          console.warn("Vision description failed:", visionError);
-        }
-
-        // Capture pure raw data from asset
-        const payload: any = {
-          ...asset,
-          hash,
-          pHash,
-          visionDescription,
-          timestamp: Date.now(),
-        };
-
-        // Clean payload: remove undefined/null values
-        Object.keys(payload).forEach((key) => {
-          if (payload[key] === undefined || payload[key] === null) {
-            delete payload[key];
-          }
-        });
-
-        console.log("📤 Asset captured to whitelist:", {
-          ipId: payload.ipId,
-          title: payload.title,
-          hash: hash.substring(0, 16) + "...",
-          timestamp: new Date().toLocaleString(),
-        });
-
-        const whitelistResponse = await fetch("/api/add-remix-hash", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!whitelistResponse.ok) {
-          const errorText = await whitelistResponse.text();
-          console.warn(
-            `Failed to add to whitelist: ${whitelistResponse.status}`,
-            errorText,
-          );
-          return;
-        }
-
-        console.log("✅ Asset successfully captured to whitelist:", {
-          ipId: asset.ipId,
-          title: asset.title,
-        });
-      } catch (err) {
-        console.warn("Failed to capture asset to whitelist:", err);
-        // Don't let errors affect UX
-      }
-    })();
-  };
-
-  // Capture asset to whitelist when modal opens
-  useEffect(() => {
-    if (!expandedAsset || !expandedAsset.ipId) return;
-
-    // Only capture if not already captured
-    if (capturedAssetIds.has(expandedAsset.ipId)) return;
-
-    setCapturedAssetIds((prev) => new Set(prev).add(expandedAsset.ipId));
-
-    // Capture asset to whitelist
-    captureAssetToWhitelist(expandedAsset);
-  }, [expandedAsset, capturedAssetIds]);
 
   // Note: Watermark is now applied in useGeminiGenerator hook during generation
   // This ensures watermark is applied before image is stored in creation history
