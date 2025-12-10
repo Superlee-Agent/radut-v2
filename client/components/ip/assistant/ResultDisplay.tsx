@@ -300,10 +300,10 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 label="Sensitive Subject"
                 value={flags.content_analysis.contains_sensitive_subject}
               />
-              {flags.content_analysis.description && (
+              {(flags as any).registration_reason && (
                 <DetailItem
-                  label="Notes"
-                  value={flags.content_analysis.description}
+                  label="Registration Status"
+                  value={(flags as any).registration_reason}
                 />
               )}
             </AnalysisSection>
