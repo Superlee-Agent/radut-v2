@@ -515,7 +515,7 @@ const IpImagineCreationResult = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-wrap gap-4 pb-2"
+              className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pb-2"
             >
               <AnimatePresence mode="popLayout">
                 {isLoading && (
@@ -525,7 +525,7 @@ const IpImagineCreationResult = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.3 }}
-                    className="w-40 h-40 rounded-lg bg-black border-2 border-[#FF4DA6]/50 shadow-lg flex flex-col items-center justify-center p-6 flex-shrink-0"
+                    className="aspect-square rounded-lg bg-black border-2 border-[#FF4DA6]/50 shadow-lg flex flex-col items-center justify-center p-6 flex-shrink-0"
                   >
                     <motion.div
                       animate={{ rotate: 360 }}
@@ -574,11 +574,10 @@ const IpImagineCreationResult = () => {
                     .map((creation) => (
                       <motion.div
                         key={creation.id}
-                        initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
                         transition={{ duration: 0.3 }}
-                        className="flex-shrink-0"
                       >
                         <CompactResultCard
                           imageUrl={
