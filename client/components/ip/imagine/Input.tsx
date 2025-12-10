@@ -72,7 +72,7 @@ const IpImagineInput = ({
 
   return (
     <form
-      className="chat-input flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-[1.45rem] py-2.5 sm:py-3 md:py-3.5 border-t-0 md:border-t md:border-[#FF4DA6]/10 bg-slate-950/60 md:bg-gradient-to-r md:from-slate-950/60 md:via-[#FF4DA6]/5 md:to-slate-950/60 flex-none sticky bottom-0 z-10 backdrop-blur-xl transition-all duration-300"
+      className="chat-input flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-[1.45rem] py-2.5 sm:py-3 md:py-3.5 flex-none sticky bottom-0 z-10 transition-all duration-300"
       onSubmit={(event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const isRemixWithRegister =
@@ -88,146 +88,7 @@ const IpImagineInput = ({
       }}
       autoComplete="off"
     >
-      {/* Gallery Button - Always visible */}
-      <div ref={galleryButtonRef} className="mr-2 flex items-center relative">
-        <button
-          type="button"
-          onClick={() => {
-            navigate("/ip-imagine/result");
-          }}
-          disabled={!resultUrl && !waiting && creations.length === 0}
-          className={`flex-shrink-0 p-2 sm:p-1.5 rounded-lg active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/30 ${
-            waiting || resultUrl || creations.length > 0
-              ? "text-[#FF4DA6] bg-[#FF4DA6]/10"
-              : "text-[#FF4DA6] hover:bg-[#FF4DA6]/10"
-          }`}
-          aria-label="View creations and results"
-          title="Creation Results"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 sm:h-5 sm:w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 12a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zM11 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1V4zM11 12a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-3z" />
-          </svg>
-        </button>
-
-        {/* Pink Box with Stacking Effect - Only shows after generation starts */}
-        <AnimatePresence>
-          {waiting || resultUrl ? (
-            <div
-              className="absolute inset-0 -translate-x-[10%] pointer-events-none"
-              style={{ perspective: "1000px" }}
-            >
-              {/* Stacked layers for multiple results */}
-              {resultUrls.slice(0, 3).map((url, index) => (
-                <motion.div
-                  key={`stack-${index}`}
-                  className="absolute inset-0 rounded-lg overflow-hidden bg-[#FF4DA6]/20 border border-[#FF4DA6]/30 hover:border-[#FF4DA6]/50 pointer-events-none"
-                  initial={{ opacity: 0, y: 0, rotateZ: 0 }}
-                  animate={{
-                    opacity: 0.7 - index * 0.15,
-                    y: index * 4,
-                    rotateZ: index * 2,
-                    transition: { delay: index * 0.05 },
-                  }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    zIndex: -index,
-                  }}
-                >
-                  <motion.img
-                    src={url}
-                    alt="Generation result thumbnail"
-                    className="w-full h-full object-cover"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.div>
-              ))}
-
-              {/* Loading box - shows on top */}
-              {waiting && (
-                <motion.div
-                  key="loading-box"
-                  className="absolute inset-0 rounded-lg overflow-hidden bg-[#FF4DA6]/20 border border-[#FF4DA6]/30 hover:border-[#FF4DA6]/50 flex items-center justify-center pointer-events-none"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    zIndex: resultUrls.length,
-                  }}
-                >
-                  <motion.div
-                    className="absolute inset-0 flex items-center justify-center bg-[#FF4DA6]/20"
-                    animate={{
-                      backgroundColor: [
-                        "rgba(255, 77, 166, 0.2)",
-                        "rgba(255, 77, 166, 0.3)",
-                        "rgba(255, 77, 166, 0.2)",
-                      ],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <svg
-                      className="h-6 w-6 text-[#FF4DA6] animate-spin"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeOpacity="0.15"
-                        strokeWidth="3"
-                      />
-                      <path
-                        d="M22 12a10 10 0 00-10-10"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </motion.div>
-                </motion.div>
-              )}
-
-              {/* Current result on top */}
-              {resultUrl && !waiting && (
-                <motion.div
-                  key="current-result"
-                  className="absolute inset-0 rounded-lg overflow-hidden bg-[#FF4DA6]/20 border border-[#FF4DA6]/30 hover:border-[#FF4DA6]/50 pointer-events-none"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    zIndex: resultUrls.length,
-                  }}
-                >
-                  <motion.img
-                    src={resultUrl}
-                    alt="Generation result thumbnail"
-                    className="w-full h-full object-cover"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4 }}
-                  />
-                </motion.div>
-              )}
-            </div>
-          ) : null}
-        </AnimatePresence>
-      </div>
-
-      <div className="flex-1 flex flex-col gap-2 bg-slate-900/60 rounded-2xl pl-2 pr-4 py-2 focus-within:ring-2 focus-within:ring-[#FF4DA6]/30 transition-all duration-300">
+      <div className="flex-1 flex flex-col gap-2 bg-slate-900 rounded-2xl pl-2 pr-4 py-2 focus-within:ring-2 focus-within:ring-[#FF4DA6]/30 transition-all duration-300">
         <RemixImage
           previewImages={previewImages}
           setPreviewImages={setPreviewImages}
@@ -235,6 +96,144 @@ const IpImagineInput = ({
         />
 
         <div className="flex items-center gap-2">
+          {/* Gallery Button - Inside border */}
+          <div ref={galleryButtonRef} className="flex items-center relative">
+            <button
+              type="button"
+              onClick={() => {
+                navigate("/ip-imagine/result");
+              }}
+              disabled={!resultUrl && !waiting && creations.length === 0}
+              className={`flex-shrink-0 p-2 sm:p-1.5 rounded-lg active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/30 ${
+                waiting || resultUrl || creations.length > 0
+                  ? "text-[#FF4DA6] bg-[#FF4DA6]/10"
+                  : "text-[#FF4DA6] hover:bg-[#FF4DA6]/10"
+              }`}
+              aria-label="View creations and results"
+              title="Creation Results"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 sm:h-5 sm:w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 12a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zM11 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1V4zM11 12a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-3z" />
+              </svg>
+            </button>
+
+            {/* Pink Box with Stacking Effect - Only shows after generation starts */}
+            <AnimatePresence>
+              {waiting || resultUrl ? (
+                <div
+                  className="absolute inset-0 -translate-x-[10%] pointer-events-none"
+                  style={{ perspective: "1000px" }}
+                >
+                  {/* Stacked layers for multiple results */}
+                  {resultUrls.slice(0, 3).map((url, index) => (
+                    <motion.div
+                      key={`stack-${index}`}
+                      className="absolute inset-0 rounded-lg overflow-hidden bg-[#FF4DA6]/20 border border-[#FF4DA6]/30 hover:border-[#FF4DA6]/50 pointer-events-none"
+                      initial={{ opacity: 0, y: 0, rotateZ: 0 }}
+                      animate={{
+                        opacity: 0.7 - index * 0.15,
+                        y: index * 4,
+                        rotateZ: index * 2,
+                        transition: { delay: index * 0.05 },
+                      }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.3 }}
+                      style={{
+                        zIndex: -index,
+                      }}
+                    >
+                      <motion.img
+                        src={url}
+                        alt="Generation result thumbnail"
+                        className="w-full h-full object-cover"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </motion.div>
+                  ))}
+
+                  {/* Loading box - shows on top */}
+                  {waiting && (
+                    <motion.div
+                      key="loading-box"
+                      className="absolute inset-0 rounded-lg overflow-hidden bg-[#FF4DA6]/20 border border-[#FF4DA6]/30 hover:border-[#FF4DA6]/50 flex items-center justify-center pointer-events-none"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.3 }}
+                      style={{
+                        zIndex: resultUrls.length,
+                      }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 flex items-center justify-center bg-[#FF4DA6]/20"
+                        animate={{
+                          backgroundColor: [
+                            "rgba(255, 77, 166, 0.2)",
+                            "rgba(255, 77, 166, 0.3)",
+                            "rgba(255, 77, 166, 0.2)",
+                          ],
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <svg
+                          className="h-6 w-6 text-[#FF4DA6] animate-spin"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeOpacity="0.15"
+                            strokeWidth="3"
+                          />
+                          <path
+                            d="M22 12a10 10 0 00-10-10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </motion.div>
+                    </motion.div>
+                  )}
+
+                  {/* Current result on top */}
+                  {resultUrl && !waiting && (
+                    <motion.div
+                      key="current-result"
+                      className="absolute inset-0 rounded-lg overflow-hidden bg-[#FF4DA6]/20 border border-[#FF4DA6]/30 hover:border-[#FF4DA6]/50 pointer-events-none"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.3 }}
+                      style={{
+                        zIndex: resultUrls.length,
+                      }}
+                    >
+                      <motion.img
+                        src={resultUrl}
+                        alt="Generation result thumbnail"
+                        className="w-full h-full object-cover"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.4 }}
+                      />
+                    </motion.div>
+                  )}
+                </div>
+              ) : null}
+            </AnimatePresence>
+          </div>
           <button
             type="button"
             data-file-input-btn
@@ -303,6 +302,28 @@ const IpImagineInput = ({
             disabled={waiting}
             className="flex-1 resize-none px-4 py-0 bg-transparent text-white placeholder:text-slate-400 min-h-[40px] max-h-32 overflow-y-auto focus:outline-none font-medium text-[0.97rem] disabled:opacity-50"
           />
+          <button
+            type="submit"
+            data-tour-submit
+            disabled={
+              waiting ||
+              (!input.trim() &&
+                !previewImages.remixImage &&
+                !previewImages.additionalImage)
+            }
+            className="flex-shrink-0 p-2.5 sm:p-2 rounded-lg bg-[#FF4DA6]/20 text-[#FF4DA6] hover:bg-[#FF4DA6]/30 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/30"
+            aria-label="Send message"
+            onPointerDown={(event) => event.preventDefault()}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M2.94 2.94a1.5 1.5 0 012.12 0L17 14.88V17a1 1 0 01-1 1h-2.12L2.94 5.06a1.5 1.5 0 010-2.12z" />
+            </svg>
+          </button>
         </div>
 
         {isInputFocused && (
@@ -394,29 +415,6 @@ const IpImagineInput = ({
           </motion.div>
         ) : null}
       </div>
-
-      <button
-        type="submit"
-        data-tour-submit
-        disabled={
-          waiting ||
-          (!input.trim() &&
-            !previewImages.remixImage &&
-            !previewImages.additionalImage)
-        }
-        className="flex-shrink-0 p-2.5 sm:p-2 rounded-lg bg-[#FF4DA6]/20 text-[#FF4DA6] hover:bg-[#FF4DA6]/30 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/30"
-        aria-label="Send message"
-        onPointerDown={(event) => event.preventDefault()}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path d="M2.94 2.94a1.5 1.5 0 012.12 0L17 14.88V17a1 1 0 01-1 1h-2.12L2.94 5.06a1.5 1.5 0 010-2.12z" />
-        </svg>
-      </button>
 
       <FlyingImageAnimation
         isActive={showFlyingAnimation}
