@@ -213,7 +213,7 @@ const CompactResultCard = ({
 
     // Get the creation to check for cleanUrl (paid remix)
     const creation = context?.creations.find((c) => c.id === creationId);
-    const urlToDisplay = creation?.cleanUrl || originalUrl || cleanUrl;
+    const urlToDisplay = creation?.cleanUrl || originalUrl || imageUrl;
 
     // Display clean image after successful registration
     if (urlToDisplay) {
