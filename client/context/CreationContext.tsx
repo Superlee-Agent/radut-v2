@@ -121,11 +121,15 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  // Detect wallet disconnect or switch - clear all cache
+  // Detect wallet switch (but NOT disconnect) - only clear cache when switching to a different wallet
   useEffect(() => {
-    if (previousWalletAddress && previousWalletAddress !== walletAddress) {
+    if (
+      previousWalletAddress &&
+      walletAddress &&
+      previousWalletAddress !== walletAddress
+    ) {
       console.log(
-        `[CreationContext] Wallet changed from ${previousWalletAddress} to ${walletAddress}. Clearing cache.`,
+        `[CreationContext] Wallet switched from ${previousWalletAddress} to ${walletAddress}. Clearing cache.`,
       );
       clearAllCache();
       setResultUrl(null);
@@ -138,10 +142,10 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
     setPreviousWalletAddress(walletAddress);
   }, [walletAddress, previousWalletAddress]);
 
-  // Fetch wallet creations
+  // Fetch wallet creations when wallet connects
   useEffect(() => {
     if (!walletAddress) {
-      setCreations([]);
+      // Don't clear creations when wallet disconnects - user may reconnect later
       return;
     }
 
@@ -163,18 +167,28 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
             }));
             setCreations(validCreations);
             setFetchError(null);
+            console.log(
+              `[CreationContext] Loaded ${validCreations.length} creations from Supabase`,
+            );
           }
         } else {
-          const errorMsg = `Failed to fetch wallet creations: ${response.status}`;
-          console.error(errorMsg);
+          const errorText = await response.text();
+          const errorMsg = `Failed to fetch wallet creations: ${response.status} ${errorText.substring(0, 100)}`;
+          console.error("[CreationContext]", errorMsg);
           setFetchError(errorMsg);
-          setCreations([]);
+          // Don't clear local creations on error - keep locally added items
+          console.log(
+            "[CreationContext] Keeping locally cached creations due to fetch error",
+          );
         }
       } catch (error: any) {
         const errorMsg = error?.message || "Failed to fetch creations";
-        console.error("Error fetching creations:", errorMsg);
+        console.error("[CreationContext] Error fetching creations:", errorMsg);
         setFetchError(errorMsg);
-        setCreations([]);
+        // Don't clear local creations on error - keep locally added items
+        console.log(
+          "[CreationContext] Keeping locally cached creations due to network error",
+        );
       }
     };
 
@@ -257,16 +271,55 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
       setCreations((prev) => [newCreation, ...prev]);
 
       if (walletAddr) {
-        const params = new URLSearchParams({
-          requesting_wallet: walletAddr,
-        });
-        fetch(`/api/wallet-creations?${params.toString()}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newCreation),
-        }).catch((error) => {
-          console.warn("Failed to sync wallet creation to server:", error);
-        });
+        // Sync to Supabase with retry logic
+        const syncCreationToSupabase = async (retryCount = 0) => {
+          try {
+            const params = new URLSearchParams({
+              requesting_wallet: walletAddr,
+            });
+            const response = await fetch(
+              `/api/wallet-creations?${params.toString()}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newCreation),
+              },
+            );
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(
+                `Failed to sync creation: ${response.status} ${errorText}`,
+              );
+            }
+
+            console.log(
+              `[CreationContext] Creation synced to Supabase: ${newCreation.id}`,
+            );
+          } catch (error: any) {
+            console.warn(
+              `[CreationContext] Attempt ${retryCount + 1} to sync creation failed:`,
+              error?.message,
+            );
+
+            // Retry up to 3 times with exponential backoff
+            if (retryCount < 3) {
+              const delayMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+              setTimeout(() => {
+                syncCreationToSupabase(retryCount + 1);
+              }, delayMs);
+            } else {
+              console.error(
+                `[CreationContext] Failed to sync creation after 3 retries:`,
+                newCreation.id,
+              );
+              // Creation will be persisted locally and user can try to sync again on next connect
+            }
+          }
+        };
+
+        // Start sync in background
+        syncCreationToSupabase();
       }
     },
     [],
@@ -300,22 +353,54 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
           return c;
         });
 
-        // Sync updated creation to server
+        // Sync updated creation to server with retry logic
         const updatedCreation = updated.find((c) => c.id === id);
         if (updatedCreation) {
-          const params = new URLSearchParams({
-            requesting_wallet: updatedCreation.walletAddress,
-          });
-          fetch(`/api/wallet-creations/${id}?${params.toString()}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updatedCreation),
-          }).catch((error) => {
-            console.warn(
-              "Failed to sync updated wallet creation to server:",
-              error,
-            );
-          });
+          const syncUpdate = async (retryCount = 0) => {
+            try {
+              const params = new URLSearchParams({
+                requesting_wallet: updatedCreation.walletAddress,
+              });
+              const response = await fetch(
+                `/api/wallet-creations/${id}?${params.toString()}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(updatedCreation),
+                },
+              );
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(
+                  `Failed to sync update: ${response.status} ${errorText}`,
+                );
+              }
+
+              console.log(
+                `[CreationContext] Creation update synced to Supabase: ${id}`,
+              );
+            } catch (error: any) {
+              console.warn(
+                `[CreationContext] Attempt ${retryCount + 1} to sync update failed:`,
+                error?.message,
+              );
+
+              // Retry up to 3 times with exponential backoff
+              if (retryCount < 3) {
+                const delayMs = Math.pow(2, retryCount) * 1000;
+                setTimeout(() => {
+                  syncUpdate(retryCount + 1);
+                }, delayMs);
+              } else {
+                console.error(
+                  `[CreationContext] Failed to sync update after 3 retries: ${id}`,
+                );
+              }
+            }
+          };
+
+          syncUpdate();
         }
 
         return updated;
@@ -410,8 +495,9 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
           }));
           setCreations(validCreations);
           setFetchError(null);
-        } else {
-          setCreations([]);
+          console.log(
+            `[CreationContext] Refreshed ${validCreations.length} creations from Supabase for ${walletAddr.substring(0, 6)}...`,
+          );
         }
       } else if (response.status === 403) {
         console.warn(
@@ -420,16 +506,23 @@ export const CreationProvider: React.FC<{ children: ReactNode }> = ({
         setFetchError("Unauthorized: wallet address mismatch");
         setCreations([]);
       } else {
-        const errorMsg = `Failed to refresh wallet creations: ${response.status}`;
-        console.error(errorMsg);
+        const errorText = await response.text();
+        const errorMsg = `Failed to refresh wallet creations: ${response.status} ${errorText.substring(0, 100)}`;
+        console.error("[CreationContext]", errorMsg);
         setFetchError(errorMsg);
-        setCreations([]);
+        // Don't clear local creations on error - keep locally added items
+        console.log(
+          "[CreationContext] Keeping locally cached creations due to refresh error",
+        );
       }
     } catch (error: any) {
       const errorMsg = error?.message || "Failed to refresh wallet creations";
-      console.error(errorMsg);
+      console.error("[CreationContext] Error refreshing creations:", errorMsg);
       setFetchError(errorMsg);
-      setCreations([]);
+      // Don't clear local creations on error - keep locally added items
+      console.log(
+        "[CreationContext] Keeping locally cached creations due to network error",
+      );
     }
   }, []);
 
