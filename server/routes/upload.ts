@@ -59,6 +59,12 @@ export const handleUpload: any = [
       // Get license settings for the classified group
       const license = getLicenseSettings(classification.group);
 
+      // Calculate registration reason
+      const registrationReason = getRegistrationReason(analysisFlags, classification.group);
+
+      // Add registration reason to analysisFlags
+      (analysisFlags as any).registration_reason = registrationReason;
+
       // Build response body
       const body = {
         ok: true,
