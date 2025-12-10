@@ -60,7 +60,10 @@ export const handleUpload: any = [
       const license = getLicenseSettings(classification.group);
 
       // Calculate registration reason
-      const registrationReason = getRegistrationReason(analysisFlags, classification.group);
+      const registrationReason = getRegistrationReason(
+        analysisFlags,
+        classification.group,
+      );
 
       // Add registration reason to analysisFlags
       (analysisFlags as any).registration_reason = registrationReason;

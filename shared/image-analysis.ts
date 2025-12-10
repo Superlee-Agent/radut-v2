@@ -267,7 +267,7 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
 
 export function getRegistrationReason(
   flags: ImageAnalysisFlags,
-  group: GroupNumber
+  group: GroupNumber,
 ): string {
   // Check for explicit content first (highest priority)
   if (flags.content_analysis.contains_explicit_content) {
@@ -291,7 +291,11 @@ export function getRegistrationReason(
   }
 
   // Check for regular person face (full)
-  if (flags.has_human_face && flags.is_full_face_visible && !flags.is_famous_person) {
+  if (
+    flags.has_human_face &&
+    flags.is_full_face_visible &&
+    !flags.is_famous_person
+  ) {
     return "Full face of regular person detected (model release required)";
   }
 
