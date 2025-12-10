@@ -1,4 +1,4 @@
-import { RequestHandler, Request, Response } from "express";
+import { RequestHandler } from "express";
 
 interface GetAssetByIdRequestBody {
   ipId: string;
