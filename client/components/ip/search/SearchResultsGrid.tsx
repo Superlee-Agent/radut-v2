@@ -1,4 +1,5 @@
 import { formatEther } from "viem";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 interface License {
@@ -98,6 +99,18 @@ export const SearchResultsGrid = ({
   onOwnerClick,
   onRemixSelected,
 }: SearchResultsGridProps) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <div className="w-full">
       {isLoadingOwnerAssets ? (
@@ -251,7 +264,7 @@ export const SearchResultsGrid = ({
                     <motion.button
                       initial={{ opacity: 0, scale: 0.8, y: -10 }}
                       animate={
-                        hoveredIndex === idx
+                        isMobile || hoveredIndex === idx
                           ? { opacity: 1, scale: 1, y: 0 }
                           : { opacity: 0, scale: 0.8, y: -10 }
                       }
