@@ -1,8 +1,43 @@
-import { useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { formatEther } from "viem";
 import { useRemixTypes } from "./hooks";
 import { AssetLifecycleInfographic } from "./AssetLifecycleInfographic";
 import type { SearchResult } from "./types";
+
+function extractMintingFee(license: any): string {
+  if (!license) return "0";
+
+  let mintingFee = 0;
+
+  // Try multiple field names for minting fee
+  if (license.licensingConfig?.mintingFee) {
+    mintingFee = Number(license.licensingConfig.mintingFee);
+  } else if (license.terms?.defaultMintingFee) {
+    mintingFee = Number(license.terms.defaultMintingFee);
+  } else if (license.terms?.mintingFee) {
+    mintingFee = Number(license.terms.mintingFee);
+  }
+
+  // Convert from wei to ether (assuming fee is in wei with 18 decimals)
+  if (mintingFee > 0) {
+    return formatEther(BigInt(mintingFee));
+  }
+
+  return "0";
+}
+
+function extractRemixPrice(asset: SearchResult): string | null {
+  if (!asset.licenses || asset.licenses.length === 0) return null;
+
+  for (const license of asset.licenses) {
+    const mintingFee = extractMintingFee(license);
+    if (mintingFee !== "0") {
+      return mintingFee;
+    }
+  }
+  return null;
+}
 
 interface ExpandedAssetModalProps {
   asset: SearchResult | null;
@@ -25,6 +60,17 @@ export const ExpandedAssetModal = ({
   const [showLifecycle, setShowLifecycle] = useState(false);
   const mediaContainerRef = useRef<HTMLDivElement>(null);
   const getRemixTypes = useRemixTypes();
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("📋 ExpandedAssetModal rendered with asset:", {
+      ipId: asset?.ipId,
+      title: asset?.title,
+      hasMediaUrl: !!asset?.mediaUrl,
+      hasThumbnailUrl: !!asset?.thumbnailUrl,
+      hasRemixSelected: !!onRemixSelected,
+    });
+  }, [asset, onRemixSelected]);
 
   // Early return when asset is null (but not when isOpen is false - let AnimatePresence handle the exit animation)
   if (!asset) return null;
@@ -261,29 +307,6 @@ export const ExpandedAssetModal = ({
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4">
-            {getRemixTypes(asset).map((remixConfig, idx) => (
-              <button
-                key={`remix-${remixConfig.type}-${idx}`}
-                type="button"
-                onClick={async () => {
-                  if (onRemixSelected) {
-                    try {
-                      await onRemixSelected(remixConfig.type);
-                      onClose();
-                    } catch (error) {
-                      console.error("Error handling remix selection:", error);
-                    }
-                  } else {
-                    onRemixMenu?.();
-                  }
-                }}
-                className="text-sm px-4 py-2.5 rounded-lg bg-[#FF4DA6] text-white font-semibold transition-all hover:shadow-lg hover:shadow-[#FF4DA6]/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/50"
-              >
-                {remixConfig.type === "paid"
-                  ? "💰 Paid remix"
-                  : "🆓 Free remix"}
-              </button>
-            ))}
             <button
               type="button"
               className="text-sm px-4 py-2.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold transition-all hover:shadow-lg hover:shadow-blue-500/25 hover:bg-blue-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
@@ -296,13 +319,6 @@ export const ExpandedAssetModal = ({
               className="text-sm px-4 py-2.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold transition-all hover:shadow-lg hover:shadow-purple-500/25 hover:bg-purple-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             >
               🔄 Lifecycle
-            </button>
-            <button
-              type="button"
-              onClick={() => onShowDetails?.()}
-              className="text-sm px-4 py-2.5 rounded-lg bg-slate-700/40 text-slate-200 border border-slate-600/50 font-semibold transition-all hover:shadow-lg hover:shadow-slate-700/25 hover:bg-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/50"
-            >
-              Details
             </button>
           </div>
         </div>
