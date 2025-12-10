@@ -2,10 +2,12 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
+import { validateOpenAIApiKey } from "./utils/openai-client.js";
 import { handleUpload } from "./routes/upload.js";
 import { handleIpfsUpload, handleIpfsUploadJson } from "./routes/ipfs.js";
 import { handleDescribe } from "./routes/describe.js";
 import { handleCheckIpAssets } from "./routes/check-ip-assets.js";
+import { handleGetAssetById } from "./routes/get-asset-by-id.js";
 import { handleSearchIpAssets } from "./routes/search-ip-assets.js";
 import { handleSearchByOwner } from "./routes/search-by-owner.js";
 import { handleParseSearchIntent } from "./routes/parse-search-intent.js";
@@ -79,6 +81,8 @@ async function fetchParentIpDetails(
 }
 
 export async function createServer() {
+  // Validate critical environment variables at startup
+  validateOpenAIApiKey();
 
   const app = express();
 
@@ -197,6 +201,9 @@ export async function createServer() {
 
   // Check IP Assets endpoint (POST /api/check-ip-assets)
   app.post("/api/check-ip-assets", handleCheckIpAssets);
+
+  // Get Asset by ID endpoint (POST /api/get-asset-by-id)
+  app.post("/api/get-asset-by-id", handleGetAssetById);
 
   // Search IP Assets endpoint (POST /api/search-ip-assets)
   app.post("/api/search-ip-assets", handleSearchIpAssets);
