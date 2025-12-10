@@ -15,6 +15,11 @@ const analysisSchema = {
   schema: {
     type: "object",
     properties: {
+      primary_category: {
+        type: "string",
+        description:
+          "The single most important classification. Choose one: 'Photograph', 'AI-Generated Image', 'Animation/CGI', or 'Uncertain' if impossible to tell.",
+      },
       ai_generation_analysis: {
         type: "object",
         description:
@@ -87,8 +92,6 @@ const analysisSchema = {
         required: ["detected_text"],
         additionalProperties: false,
       },
-      is_photo: { type: "boolean" },
-      is_animation: { type: "boolean" },
       has_human_face: { type: "boolean" },
       is_full_face_visible: { type: "boolean" },
       is_famous_person: { type: "boolean" },
@@ -97,13 +100,12 @@ const analysisSchema = {
       description: { type: "string" },
     },
     required: [
+      "primary_category",
       "ai_generation_analysis",
       "content_analysis",
       "composition_analysis",
       "object_detection",
       "text_detection",
-      "is_photo",
-      "is_animation",
       "has_human_face",
       "is_full_face_visible",
       "is_famous_person",
@@ -120,15 +122,19 @@ export async function analyzeImageWithOpenAI(
   mimeType: string,
 ): Promise<ImageAnalysisFlags> {
   try {
-    const prompt = `You are an expert forensic image analyst for IP registration tasks. Follow a zero-trust approach and strictly fill ALL fields of the JSON schema.
+    const prompt = `You are an expert forensic image analyst for Intellectual Property (IP) registration.
 
-1. AI forensics: hyper-realism, texture issues, lighting mismatches, distortion.
-2. Sensitive content analysis.
-3. Composition: style, perspective, dominant colors.
-4. Detect objects + any text found.
-5. Check human faces, famous individuals, copyrighted characters.
+Your **first and most critical task** is to determine the image's origin and set the 'primary_category' based on AI likelihood:
+- If AI likelihood is 'High' or 'Medium' → primary_category = 'AI-Generated Image'
+- If AI likelihood is 'Low' or 'Unlikely' → primary_category = 'Photograph'
+- If the image appears to be animation, CGI render, cartoon, etc. → primary_category = 'Animation/CGI'
+- If truly uncertain → primary_category = 'Uncertain'
 
-Return ONLY JSON following the schema. Be precise, concise, and deterministic.`;
+Then perform a deep, full-spectrum analysis:
+1. **AI Forensics** — detect artifacts, hyperrealism, texture inconsistencies. Be precise with likelihood (High/Medium/Low/Unlikely).
+2. **Sensitive Content Detection** — violence, explicit content, self-harm.
+3. **IP Risk Assessment** — recognizable faces, famous people, brands, characters.
+4. Follow the JSON schema EXACTLY with no extra fields.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
