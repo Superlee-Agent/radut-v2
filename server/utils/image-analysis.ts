@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { type ImageAnalysisFlags } from "../../shared/image-analysis";
+import { type ImageAnalysisFlags } from "../../shared/image-analysis.js";
 
 const API_KEY = process.env.OPENAI_API_KEY;
 
