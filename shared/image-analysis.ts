@@ -27,13 +27,16 @@ export interface TextDetection {
 }
 
 export interface ImageAnalysisFlags {
+  primary_category:
+    | "Photograph"
+    | "AI-Generated Image"
+    | "Animation/CGI"
+    | "Uncertain";
   ai_generation_analysis: AIGenerationAnalysis;
   content_analysis: ContentAnalysis;
   composition_analysis: CompositionAnalysis;
   object_detection: ObjectDetection;
   text_detection: TextDetection;
-  is_photo: boolean;
-  is_animation: boolean;
   has_human_face: boolean;
   is_full_face_visible: boolean;
   is_famous_person: boolean;
@@ -88,16 +91,33 @@ export interface ClassificationResult {
 
 // Classification Logic
 export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
-  const {
+  let {
+    primary_category,
     ai_generation_analysis,
     content_analysis,
-    is_photo,
-    is_animation,
     has_human_face,
     is_full_face_visible,
     is_famous_person,
     has_known_brand_or_character,
   } = flags;
+
+  // Validate consistency: primary_category should match AI likelihood
+  // If AI likelihood is "Unlikely" or "Low", it should be a Photograph, not AI-Generated
+  if (
+    (ai_generation_analysis.likelihood === "Unlikely" ||
+      ai_generation_analysis.likelihood === "Low") &&
+    primary_category === "AI-Generated Image"
+  ) {
+    primary_category = "Photograph";
+  }
+  // If AI likelihood is "High" or "Medium", it should be AI-Generated Image, not Photograph
+  else if (
+    (ai_generation_analysis.likelihood === "High" ||
+      ai_generation_analysis.likelihood === "Medium") &&
+    primary_category === "Photograph"
+  ) {
+    primary_category = "AI-Generated Image";
+  }
 
   // High-priority check: If content is sensitive, it's an automatic rejection regardless of other factors.
   if (
@@ -112,145 +132,141 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
     };
   }
 
-  // Derive a simple boolean for logic from the detailed analysis. 'Unlikely' and 'Low' are treated as not AI.
-  const is_ai_generated =
-    ai_generation_analysis.likelihood === "High" ||
-    ai_generation_analysis.likelihood === "Medium";
-
-  // --- Animation Branch ---
-  if (is_animation) {
-    if (is_ai_generated) {
-      // AI Animation
-      return has_known_brand_or_character
-        ? {
-            group: 13,
-            type: "AI Animation",
-            classification: "Contains Brand/Character",
-          }
-        : {
-            group: 12,
-            type: "AI Animation",
-            classification: "No Brand/Character",
-          };
-    } else {
-      // Non-AI Animation (e.g., traditional cartoon, CGI render)
-      return has_known_brand_or_character
-        ? {
-            group: 15,
-            type: "Non-AI Animation",
-            classification: "Contains Brand/Character",
-          }
-        : {
-            group: 14,
-            type: "Non-AI Animation",
-            classification: "No Brand/Character",
-          };
+  switch (primary_category) {
+    case "Animation/CGI": {
+      const is_ai_animation =
+        ai_generation_analysis.likelihood === "High" ||
+        ai_generation_analysis.likelihood === "Medium";
+      if (is_ai_animation) {
+        return has_known_brand_or_character
+          ? {
+              group: 13,
+              type: "AI Animation",
+              classification: "Contains Brand/Character",
+            }
+          : {
+              group: 12,
+              type: "AI Animation",
+              classification: "No Brand/Character",
+            };
+      } else {
+        // Non-AI Animation (e.g., traditional cartoon, manual CGI render)
+        return has_known_brand_or_character
+          ? {
+              group: 15,
+              type: "Non-AI Animation",
+              classification: "Contains Brand/Character",
+            }
+          : {
+              group: 14,
+              type: "Non-AI Animation",
+              classification: "No Brand/Character",
+            };
+      }
     }
-  }
 
-  // --- AI Image Branch ---
-  if (is_ai_generated) {
-    if (has_known_brand_or_character) {
-      return {
-        group: 2,
-        type: "AI Image",
-        classification: "Contains Brand/Character",
-      };
+    case "AI-Generated Image": {
+      if (has_known_brand_or_character) {
+        return {
+          group: 2,
+          type: "AI Image",
+          classification: "Contains Brand/Character",
+        };
+      }
+      if (!has_human_face) {
+        return {
+          group: 1,
+          type: "AI Image",
+          classification: "No Faces or Brands",
+        };
+      }
+      // Has a human face
+      if (is_famous_person) {
+        return is_full_face_visible
+          ? {
+              group: 3,
+              type: "AI Image",
+              classification: "Famous Person (Full Face)",
+            }
+          : {
+              group: 4,
+              type: "AI Image",
+              classification: "Famous Person (Partial Face)",
+            };
+      } else {
+        // Regular person
+        return is_full_face_visible
+          ? {
+              group: 5,
+              type: "AI Image",
+              classification: "Regular Person (Full Face)",
+            }
+          : {
+              group: 6,
+              type: "AI Image",
+              classification: "Regular Person (Partial Face)",
+            };
+      }
     }
-    if (!has_human_face) {
+
+    case "Photograph": {
+      if (has_known_brand_or_character) {
+        return {
+          group: 7,
+          type: "Photograph",
+          classification: "Contains Brand/Character",
+        };
+      }
+      if (!has_human_face) {
+        return {
+          group: 16,
+          type: "Photograph",
+          classification: "No Faces or Brands",
+        };
+      }
+      // Has a human face
+      if (is_famous_person) {
+        return is_full_face_visible
+          ? {
+              group: 8,
+              type: "Photograph",
+              classification: "Famous Person (Full Face)",
+            }
+          : {
+              group: 9,
+              type: "Photograph",
+              classification: "Famous Person (Partial Face)",
+            };
+      } else {
+        // Regular person
+        return is_full_face_visible
+          ? {
+              group: 10,
+              type: "Photograph",
+              classification: "Regular Person (Full Face)",
+            }
+          : {
+              group: 11,
+              type: "Photograph",
+              classification: "Regular Person (Partial Face)",
+            };
+      }
+    }
+
+    case "Uncertain":
+    default:
+      // Fallback: If the AI is uncertain, treat it with the caution of an AI image.
       return {
         group: 1,
-        type: "AI Image",
-        classification: "No Faces or Brands",
+        type: "Uncertain Origin",
+        classification: "Requires manual review",
       };
-    }
-    // Has a human face
-    if (is_famous_person) {
-      return is_full_face_visible
-        ? {
-            group: 3,
-            type: "AI Image",
-            classification: "Famous Person (Full Face)",
-          }
-        : {
-            group: 4,
-            type: "AI Image",
-            classification: "Famous Person (Partial Face)",
-          };
-    } else {
-      // Regular person
-      return is_full_face_visible
-        ? {
-            group: 5,
-            type: "AI Image",
-            classification: "Regular Person (Full Face)",
-          }
-        : {
-            group: 6,
-            type: "AI Image",
-            classification: "Regular Person (Partial Face)",
-          };
-    }
   }
-
-  // --- Photograph Branch ---
-  if (is_photo) {
-    if (has_known_brand_or_character) {
-      return {
-        group: 7,
-        type: "Photograph",
-        classification: "Contains Brand/Character",
-      };
-    }
-    if (!has_human_face) {
-      return {
-        group: 16,
-        type: "Photograph",
-        classification: "No Faces or Brands",
-      };
-    }
-    // Has a human face
-    if (is_famous_person) {
-      return is_full_face_visible
-        ? {
-            group: 8,
-            type: "Photograph",
-            classification: "Famous Person (Full Face)",
-          }
-        : {
-            group: 9,
-            type: "Photograph",
-            classification: "Famous Person (Partial Face)",
-          };
-    } else {
-      // Regular person
-      return is_full_face_visible
-        ? {
-            group: 10,
-            type: "Photograph",
-            classification: "Regular Person (Full Face)",
-          }
-        : {
-            group: 11,
-            type: "Photograph",
-            classification: "Regular Person (Partial Face)",
-          };
-    }
-  }
-
-  // Fallback: If it's none of the above (e.g., abstract art, not explicitly photo or AI),
-  // classify as a simple AI-like image to be safe.
-  return {
-    group: 1,
-    type: "Unclassified Image",
-    classification: "No Faces or Brands",
-  };
 }
 
 export function getLicenseSettings(group: GroupNumber): LicenseSettings {
   switch (group) {
     // CAN REGISTER
-    case 1:
     case 4:
     case 6:
     case 12:
@@ -292,13 +308,14 @@ export function getLicenseSettings(group: GroupNumber): LicenseSettings {
       };
 
     // REQUIRES REVIEW
+    case 1:
     case 5:
     case 10:
       return {
         status: RegistrationStatus.REQUIRES_REVIEW,
         title: "Requires Review",
         description:
-          "This image contains a full, identifiable face of a non-famous person. A model release or selfie verification is required to proceed with registration.",
+          "This image requires manual review. AI-generated content without faces (Group 1) needs verification, and images with identifiable faces (Groups 5, 10) require a model release.",
         buttonText: "Start Review Process",
         color: "yellow",
       };
