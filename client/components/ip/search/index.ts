@@ -2,6 +2,7 @@
 export { IpAssistantSearch } from "./IpAssistantSearch";
 export { SearchResultsGrid } from "./SearchResultsGrid";
 export { ExpandedAssetModal } from "./ExpandedAssetModal";
+export { AssetLifecycleInfographic } from "./AssetLifecycleInfographic";
 
 // Custom Hooks
 export {
