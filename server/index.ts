@@ -80,8 +80,6 @@ async function fetchParentIpDetails(
 }
 
 export async function createServer() {
-  // Validate critical environment variables at startup
-  validateOpenAIApiKey();
 
   const app = express();
 
