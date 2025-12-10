@@ -397,6 +397,7 @@ export const CatalogBrowser = ({
                     onAssetExpanded?.(asset);
                   }}
                   onOwnerClick={() => {}}
+                  onRemixSelected={onRemixSelected}
                 />
 
                 {hasMore && (
@@ -447,12 +448,28 @@ export const CatalogBrowser = ({
             onClose={() => setExpandedAsset(null)}
             onShowDetails={() => {}}
             onRemixSelected={async (remixType) => {
-              if (onRemixSelected) {
+              console.log("📤 CatalogBrowser onRemixSelected called:", {
+                remixType,
+                hasExpandedAsset: !!expandedAsset,
+                assetIpId: expandedAsset?.ipId,
+                assetTitle: expandedAsset?.title,
+                hasMediaUrl: !!expandedAsset?.mediaUrl,
+                hasThumbnailUrl: !!expandedAsset?.thumbnailUrl,
+              });
+              if (onRemixSelected && expandedAsset) {
                 try {
                   await onRemixSelected(expandedAsset, remixType);
                 } catch (error) {
-                  console.error("Error handling remix selection:", error);
+                  console.error("❌ Error handling remix selection:", error);
                 }
+              } else {
+                console.warn(
+                  "⚠️ onRemixSelected not called - missing handler or asset",
+                  {
+                    hasCallback: !!onRemixSelected,
+                    hasAsset: !!expandedAsset,
+                  },
+                );
               }
             }}
           />
