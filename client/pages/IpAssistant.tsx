@@ -11,6 +11,7 @@ import { IpAssistantSearch } from "@/components/ip/search";
 import { WhitelistDetailsModal } from "@/components/ip/assistant/WhitelistDetailsModal";
 import { WhitelistMonitor } from "@/components/ip/assistant/WhitelistMonitor";
 import { WelcomeScreen } from "@/components/ip/assistant/WelcomeScreen";
+import { ResultDisplay } from "@/components/ip/assistant/ResultDisplay";
 import {
   PopularIPGrid,
   AddRemixImageModal,
@@ -656,6 +657,7 @@ const IpAssistant = () => {
         const data = await response.json();
         let display = (data as any)?.display || "(No analysis result)";
         let verification: { label: string; code: string } | string | undefined;
+        let analysisResult: any = null;
 
         if (
           typeof (data as any)?.group === "number" &&
@@ -665,6 +667,17 @@ const IpAssistant = () => {
           const d = (data as any).details as Record<string, any>;
           lastAnalysisFactsRef.current = d;
           verification = { label: `Detail`, code: String(g) as any };
+
+          // Build ClassificationResult for display
+          analysisResult = {
+            flags: d,
+            classification: {
+              group: g,
+              type: (data as any)?.type || "Analysis",
+              classification: (data as any)?.classification || "",
+            },
+            license: (data as any)?.license || null,
+          };
         } else {
           const rawText = data?.raw ? String(data.raw).trim() : "";
           display = rawText || "(No analysis result)";
@@ -702,6 +715,7 @@ const IpAssistant = () => {
           verification,
           ts: getCurrentTimestamp(),
           ctxKey,
+          analysisResult,
         });
         autoScrollNextRef.current = true;
       } catch (error: any) {
@@ -1010,7 +1024,10 @@ const IpAssistant = () => {
     const ts = getCurrentTimestamp();
 
     if (value) {
-      pushMessage({ from: "user", text: value, ts });
+      const imageUrl = lastUploadBlobRef.current
+        ? URL.createObjectURL(lastUploadBlobRef.current)
+        : undefined;
+      pushMessage({ from: "user", text: value, imageUrl, ts });
     }
 
     setInput("");
@@ -1019,11 +1036,6 @@ const IpAssistant = () => {
 
     if (value.toLowerCase() === "register") {
       if (hasPreview && imageToProcess) {
-        pushMessage({
-          from: "user-image",
-          url: imageToProcess.url,
-          ts,
-        });
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         // Hash Detection - Check before OpenAI analysis
@@ -1773,8 +1785,21 @@ const IpAssistant = () => {
                   {...getBubbleMotionProps(index)}
                   className="flex justify-end mb-3 px-1 md:px-2 last:mb-1"
                 >
-                  <div className="bg-[#ff4da6] text-white px-4 py-2 rounded-2xl max-w-[85%] md:max-w-[65%] break-words text-[0.95rem]">
-                    {msg.text}
+                  <div className="flex flex-col items-end gap-2 max-w-[85%] md:max-w-[65%]">
+                    {(msg as any).imageUrl && (
+                      <div className="rounded-2xl overflow-hidden border-2 border-[#ff4da6]/30 max-w-xs shadow-lg">
+                        <img
+                          src={(msg as any).imageUrl}
+                          alt="Uploaded"
+                          className="w-full h-auto max-h-48 object-cover"
+                        />
+                      </div>
+                    )}
+                    {msg.text && (
+                      <div className="bg-[#ff4da6] text-white px-4 py-2 rounded-2xl break-words text-[0.95rem]">
+                        {msg.text}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -1796,35 +1821,130 @@ const IpAssistant = () => {
                   {...getBubbleMotionProps(index)}
                   className="flex items-start mb-3 gap-2 px-1 md:px-2 last:mb-1"
                 >
-                  <div className="bg-slate-900/70 px-4 py-2.5 rounded-2xl max-w-[85%] md:max-w-[65%] break-words text-slate-100 text-[0.95rem]">
-                    <div className="flex items-center gap-3">
-                      {msg.isProcessing ? (
-                        <div className="flex-shrink-0 inline-flex items-center justify-center rounded-full bg-[#FF4DA6]/10 p-1">
-                          <svg
-                            className="h-4 w-4 text-[#FF4DA6] animate-spin"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <circle
-                              cx="12"
-                              cy="12"
-                              r="9"
-                              stroke="currentColor"
-                              strokeOpacity="0.15"
-                              strokeWidth="3"
+                  <div className="bg-slate-900/70 px-4 py-2.5 rounded-2xl max-w-[85%] md:max-w-[85%] lg:max-w-3xl break-words text-slate-100 text-[0.95rem]">
+                    {msg.analysisResult ? (
+                      <div className="flex flex-col gap-3">
+                        {(() => {
+                          const ctxKey = (msg as any).ctxKey;
+                          const ctx = ctxKey
+                            ? analysisContextsRef.current.get(ctxKey)
+                            : null;
+                          const imageUrl = ctx?.blob
+                            ? URL.createObjectURL(ctx.blob)
+                            : undefined;
+                          return (
+                            <ResultDisplay
+                              result={msg.analysisResult}
+                              isLoading={false}
+                              error={null}
+                              imageUrl={imageUrl}
+                              ctxKey={ctxKey}
+                              onRegister={async (ctxKeyForMsg: string) => {
+                                if (!ctxKeyForMsg) return;
+                                if (loadingRegisterFor === ctxKeyForMsg) return;
+                                setLoadingRegisterFor(ctxKeyForMsg);
+                                const groupNum =
+                                  msg.analysisResult?.classification.group || 1;
+                                let title = "";
+                                let desc = "";
+                                try {
+                                  const ctx =
+                                    analysisContextsRef.current.get(
+                                      ctxKeyForMsg,
+                                    );
+                                  const blob = ctx?.blob;
+                                  const name = ctx?.name || "image.jpg";
+                                  const facts = ctx?.facts || null;
+                                  if (blob) {
+                                    const form = new FormData();
+                                    form.append("image", blob, name);
+                                    if (facts) {
+                                      form.append(
+                                        "facts",
+                                        JSON.stringify(facts),
+                                      );
+                                    }
+                                    const res = await fetch("/api/describe", {
+                                      method: "POST",
+                                      body: form,
+                                    });
+                                    if (res.ok) {
+                                      const j = await res.json();
+                                      title =
+                                        typeof j.title === "string"
+                                          ? j.title
+                                          : "";
+                                      desc =
+                                        typeof j.description === "string"
+                                          ? j.description
+                                          : "";
+                                    }
+                                  }
+                                } catch {}
+                                if (!title)
+                                  title =
+                                    ANSWER_DETAILS[
+                                      String(
+                                        groupNum,
+                                      ) as keyof typeof ANSWER_DETAILS
+                                    ]?.type || "IP Asset";
+                                if (!desc)
+                                  desc = summaryFromAnswer(String(groupNum));
+                                if (title.length > 60)
+                                  title = title.slice(0, 59) + "…";
+                                if (desc.length > 120)
+                                  desc = desc.slice(0, 119) + "…";
+                                pushMessage({
+                                  from: "register",
+                                  group: groupNum,
+                                  title,
+                                  description: desc,
+                                  ctxKey: ctxKeyForMsg,
+                                  ts: getCurrentTimestamp(),
+                                });
+                                setLoadingRegisterFor(null);
+                              }}
+                              onReset={() => {
+                                setPreviewImages({
+                                  remixImage: null,
+                                  additionalImage: null,
+                                });
+                                inputRef.current?.focus();
+                              }}
                             />
-                            <path
-                              d="M21.5 12a9.5 9.5 0 00-9.5-9.5"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </div>
-                      ) : null}
-                      <div>{msg.text}</div>
-                    </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        {msg.isProcessing ? (
+                          <div className="flex-shrink-0 inline-flex items-center justify-center rounded-full bg-[#FF4DA6]/10 p-1">
+                            <svg
+                              className="h-4 w-4 text-[#FF4DA6] animate-spin"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="9"
+                                stroke="currentColor"
+                                strokeOpacity="0.15"
+                                strokeWidth="3"
+                              />
+                              <path
+                                d="M21.5 12a9.5 9.5 0 00-9.5-9.5"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </div>
+                        ) : null}
+                        <div>{msg.text}</div>
+                      </div>
+                    )}
                     {msg.action?.type === "remix" ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
@@ -1891,151 +2011,7 @@ const IpAssistant = () => {
                         </button>
                       </div>
                     ) : null}
-                    {verificationObject ? (
-                      <div className="mt-2 text-xs text-[#FF4DA6]">
-                        Final verification:{" "}
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={() =>
-                            setActiveDetail(verificationObject.code)
-                          }
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setActiveDetail(verificationObject.code);
-                            }
-                          }}
-                          className="cursor-pointer text-[#FF4DA6] font-semibold underline underline-offset-2 decoration-[#FF4DA6]/60 outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/30 rounded"
-                        >
-                          {verificationObject.label}
-                        </span>
-                        {(() => {
-                          const codeStr = String(verificationObject.code);
-                          const info =
-                            ANSWER_DETAILS[
-                              codeStr as keyof typeof ANSWER_DETAILS
-                            ];
-                          const canRegisterByText =
-                            !!info && info.registrationStatus.includes("✅");
-                          const canRegisterByGroup =
-                            !!getLicenseSettingsByGroup(Number(codeStr));
-                          const canRegister =
-                            canRegisterByText || canRegisterByGroup;
-                          const isAuthEnabled = authenticated;
-                          if (!canRegister) return null;
-                          if (!isAuthEnabled) {
-                            return (
-                              <>
-                                {" "}
-                                <span className="mx-1 text-slate-400">��</span>
-                                <span className="text-[#FF4DA6]/60 text-xs">
-                                  (Connect wallet to register)
-                                </span>
-                              </>
-                            );
-                          }
-                          return (
-                            <>
-                              {" "}
-                              <span className="mx-1 text-slate-400">•</span>
-                              <span
-                                role="button"
-                                tabIndex={0}
-                                onClick={async () => {
-                                  const ctxKeyForMsg = (msg as any).ctxKey as
-                                    | string
-                                    | undefined;
-                                  if (!ctxKeyForMsg) return;
-                                  if (loadingRegisterFor === ctxKeyForMsg)
-                                    return;
-                                  setLoadingRegisterFor(ctxKeyForMsg);
-                                  const groupNum = Number(codeStr);
-                                  let title = "";
-                                  let desc = "";
-                                  try {
-                                    const ctx =
-                                      analysisContextsRef.current.get(
-                                        ctxKeyForMsg,
-                                      );
-                                    const blob = ctx?.blob;
-                                    const name = ctx?.name || "image.jpg";
-                                    const facts = ctx?.facts || null;
-                                    if (blob) {
-                                      const form = new FormData();
-                                      form.append("image", blob, name);
-                                      if (facts) {
-                                        form.append(
-                                          "facts",
-                                          JSON.stringify(facts),
-                                        );
-                                      }
-                                      const res = await fetch("/api/describe", {
-                                        method: "POST",
-                                        body: form,
-                                      });
-                                      if (res.ok) {
-                                        const j = await res.json();
-                                        title =
-                                          typeof j.title === "string"
-                                            ? j.title
-                                            : "";
-                                        desc =
-                                          typeof j.description === "string"
-                                            ? j.description
-                                            : "";
-                                      }
-                                    }
-                                  } catch {}
-                                  if (!title)
-                                    title =
-                                      ANSWER_DETAILS[
-                                        String(
-                                          codeStr,
-                                        ) as keyof typeof ANSWER_DETAILS
-                                      ]?.type || "IP Asset";
-                                  if (!desc)
-                                    desc = summaryFromAnswer(String(codeStr));
-                                  if (title.length > 60)
-                                    title = title.slice(0, 59) + "…";
-                                  if (desc.length > 120)
-                                    desc = desc.slice(0, 119) + "…";
-                                  pushMessage({
-                                    from: "register",
-                                    group: groupNum,
-                                    title,
-                                    description: desc,
-                                    ctxKey: ctxKeyForMsg,
-                                    ts: getCurrentTimestamp(),
-                                  });
-                                  setLoadingRegisterFor(null);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setActiveDetail(codeStr);
-                                  }
-                                }}
-                                className={`cursor-pointer text-[#FF4DA6] font-semibold underline underline-offset-2 decoration-[#FF4DA6]/60 outline-none focus-visible:ring-2 focus-visible:ring-[#FF4DA6]/30 rounded ${loadingRegisterFor === (msg as any).ctxKey ? "pointer-events-none opacity-70" : ""}`}
-                              >
-                                {loadingRegisterFor === (msg as any).ctxKey ? (
-                                  <>
-                                    Please wait
-                                    <span className="ml-2 inline-flex align-middle">
-                                      <span className="dot" />
-                                      <span className="dot" />
-                                      <span className="dot" />
-                                    </span>
-                                  </>
-                                ) : (
-                                  "Register"
-                                )}
-                              </span>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    ) : verificationText ? (
+                    {verificationText ? (
                       <div className="mt-2 text-xs text-slate-300">
                         {verificationText}
                       </div>
