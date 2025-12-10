@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useRemixTypes } from "./hooks";
+import { AssetLifecycleInfographic } from "./AssetLifecycleInfographic";
 import type { SearchResult } from "./types";
 
 interface ExpandedAssetModalProps {
@@ -21,6 +22,7 @@ export const ExpandedAssetModal = ({
   onRemixSelected,
 }: ExpandedAssetModalProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showLifecycle, setShowLifecycle] = useState(false);
   const mediaContainerRef = useRef<HTMLDivElement>(null);
   const getRemixTypes = useRemixTypes();
 
@@ -290,6 +292,13 @@ export const ExpandedAssetModal = ({
             </button>
             <button
               type="button"
+              onClick={() => setShowLifecycle(true)}
+              className="text-sm px-4 py-2.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold transition-all hover:shadow-lg hover:shadow-purple-500/25 hover:bg-purple-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+            >
+              🔄 Lifecycle
+            </button>
+            <button
+              type="button"
               onClick={() => onShowDetails?.()}
               className="text-sm px-4 py-2.5 rounded-lg bg-slate-700/40 text-slate-200 border border-slate-600/50 font-semibold transition-all hover:shadow-lg hover:shadow-slate-700/25 hover:bg-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/50"
             >
@@ -298,6 +307,13 @@ export const ExpandedAssetModal = ({
           </div>
         </div>
       </motion.div>
+
+      {/* Asset Lifecycle Infographic Modal */}
+      <AssetLifecycleInfographic
+        asset={asset}
+        isOpen={showLifecycle}
+        onClose={() => setShowLifecycle(false)}
+      />
     </motion.div>
   );
 };
