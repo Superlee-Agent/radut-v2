@@ -213,7 +213,7 @@ const CompactResultCard = ({
 
     // Get the creation to check for cleanUrl (paid remix)
     const creation = context?.creations.find((c) => c.id === creationId);
-    const urlToDisplay = creation?.cleanUrl || originalUrl || imageUrl;
+    const urlToDisplay = creation?.cleanUrl || originalUrl || cleanUrl;
 
     // Display clean image after successful registration
     if (urlToDisplay) {
@@ -279,7 +279,7 @@ const CompactResultCard = ({
       >
         {/* Large Image Container - Responsive */}
         <motion.div
-          className="relative rounded-lg overflow-hidden bg-black border-2 border-[#FF4DA6]/50 shadow-lg flex items-center justify-center w-full max-w-md sm:max-w-2xl h-full max-h-[70vh] sm:max-h-[80vh]"
+          className="relative rounded-lg overflow-hidden bg-black shadow-lg flex items-center justify-center w-full max-w-md sm:max-w-2xl h-full max-h-[70vh] sm:max-h-[80vh]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
@@ -369,7 +369,7 @@ const CompactResultCard = ({
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="absolute top-6 left-6 right-6 max-w-sm"
+                className="absolute top-6 right-6 max-w-sm"
               >
                 {registrationState === "loading" && (
                   <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4 flex items-center gap-3">
@@ -486,7 +486,7 @@ const CompactResultCard = ({
         >
           <button
             onClick={onDownload}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-md bg-[#FF4DA6] hover:bg-[#FF4DA6]/80 text-white font-medium transition-colors flex items-center justify-center gap-1 text-xs sm:text-sm whitespace-nowrap"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium transition-colors flex items-center justify-center gap-1 text-xs sm:text-sm whitespace-nowrap"
             title="Download"
           >
             <svg
@@ -555,7 +555,7 @@ const CompactResultCard = ({
                 onDelete();
                 setIsExpanded(false);
               }}
-              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-md bg-red-900/30 hover:bg-red-900/50 text-red-400 font-medium transition-colors flex items-center justify-center gap-1 text-xs sm:text-sm whitespace-nowrap border border-red-900/50"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium transition-colors flex items-center justify-center gap-1 text-xs sm:text-sm whitespace-nowrap"
               title="Delete"
             >
               <svg
@@ -579,7 +579,7 @@ const CompactResultCard = ({
             <button
               onClick={handleLicenseClick}
               disabled={registrationState === "loading"}
-              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-md bg-[#FF4DA6]/20 hover:bg-[#FF4DA6]/30 disabled:opacity-50 disabled:cursor-not-allowed text-[#FF4DA6] font-medium transition-colors flex items-center justify-center gap-1 text-xs sm:text-sm whitespace-nowrap border border-[#FF4DA6]/30"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-100 font-medium transition-colors flex items-center justify-center gap-1 text-xs sm:text-sm whitespace-nowrap"
               title="Get no watermark images"
             >
               {registrationState === "loading" ? (
@@ -637,7 +637,7 @@ const CompactResultCard = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       onClick={() => setIsExpanded(true)}
-      className="relative w-40 h-40 rounded-lg overflow-hidden bg-black border-2 border-[#FF4DA6]/50 shadow-lg group cursor-pointer hover:border-[#FF4DA6] hover:shadow-lg hover:shadow-[#FF4DA6]/20 transition-all flex items-center justify-center"
+      className="relative aspect-square rounded-lg overflow-hidden bg-black shadow-lg group cursor-pointer hover:shadow-lg transition-all flex items-center justify-center"
     >
       {imageLoadError ? (
         <div className="flex flex-col items-center justify-center gap-2 w-full h-full bg-red-900/20">
