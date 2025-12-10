@@ -15,10 +15,10 @@ import SidebarExtras from "@/components/ip/assistant/SidebarExtras";
 import IpImagineInput from "@/components/ip/imagine/Input";
 import { IpImagineTour } from "@/components/ip/imagine/IpImagineTour";
 import {
-  PopularIPGrid,
   AddRemixImageModal,
   type PreviewImagesState,
 } from "@/components/ip/remix";
+import { CatalogBrowser } from "@/components/ip/imagine/dashboard/CatalogBrowser";
 import useGeminiGenerator from "@/hooks/useGeminiGenerator";
 import { useIpImagineTour } from "@/hooks/useIpImagineTour";
 import { truncateAddress } from "@/lib/ip-assistant/utils";
@@ -473,11 +473,8 @@ const IpImagine = () => {
     >
       <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 pb-24 flex-1 overflow-y-auto bg-transparent scroll-smooth">
         <AnimatePresence initial={false} mode="popLayout">
-          <PopularIPGrid
-            key="popular-ip-grid"
-            onBack={() => {
-              /* no-op for standalone imagine */
-            }}
+          <CatalogBrowser
+            key="catalog-browser"
             onRemixSelected={handleRemixSelected}
             onAssetExpanded={setExpandedAsset}
           />
