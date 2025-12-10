@@ -74,10 +74,7 @@ export const handleGetAssetById: RequestHandler<
   object,
   GetAssetByIdResponseBody,
   GetAssetByIdRequestBody
-> = async (
-  req: Request<object, GetAssetByIdResponseBody, GetAssetByIdRequestBody>,
-  res: Response<GetAssetByIdResponseBody>,
-): Promise<void> => {
+> = async (req, res): Promise<void> => {
   try {
     const { ipId } = req.body;
 
