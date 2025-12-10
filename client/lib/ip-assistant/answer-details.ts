@@ -1,3 +1,12 @@
+import { getLicenseSettings, type GroupNumber } from "@shared/image-analysis";
+
+// Export license settings generator for backward compatibility
+export const getLicenseDetailsForGroup = (group: GroupNumber) => {
+  return getLicenseSettings(group);
+};
+
+// Legacy ANSWER_DETAILS mapping for reference and backward compatibility
+// Use getLicenseSettings from @shared/image-analysis for new implementations
 export const ANSWER_DETAILS: Record<
   string,
   {
@@ -48,7 +57,7 @@ export const ANSWER_DETAILS: Record<
     type: "AI Generated",
     notes:
       "AI-generated image; Regular person's face (not famous); full face visible",
-    registrationStatus: "��� Cannot be registered directly",
+    registrationStatus: "⚠️ Cannot be registered directly",
     action:
       "Take Selfie Photo → If selfie verification succeeds: IP can be registered; if it fails: Submit Review",
     smartLicensing:
@@ -89,17 +98,17 @@ export const ANSWER_DETAILS: Record<
     action: "-",
     smartLicensing:
       "Commercial Remix License (manual minting fee & revenue share)",
-    aiTraining: "���� Allowed (user-configurable)",
+    aiTraining: "✅ Allowed (user-configurable)",
   },
   "10": {
     type: "Human Generated",
     notes:
       "Original non-AI image; Regular person's face (not famous); full face visible",
-    registrationStatus: "❌ Cannot be registered directly",
+    registrationStatus: "⚠️ Cannot be registered directly",
     action:
       "Take Selfie Photo → If selfie verification succeeds: IP can be registered; if it fails: Submit Review",
     smartLicensing:
-      "Commercial Remix License (manual minting fee & revenue share)  ��� if verification succeeds",
+      "Commercial Remix License (manual minting fee & revenue share)  — if verification succeeds",
     aiTraining: "✅ Allowed (user-configurable)",
   },
   "11": {
@@ -145,5 +154,14 @@ export const ANSWER_DETAILS: Record<
     action: "Submit Review",
     smartLicensing: "-",
     aiTraining: "-",
+  },
+  "16": {
+    type: "Photograph",
+    notes: "Original photograph; No human face; No famous brand/character",
+    registrationStatus: "✅ IP can be registered",
+    action: "-",
+    smartLicensing:
+      "Commercial Remix License (manual minting fee & revenue share)",
+    aiTraining: "✅ Allowed (user-configurable)",
   },
 };
