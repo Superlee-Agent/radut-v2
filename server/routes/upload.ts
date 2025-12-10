@@ -3,6 +3,7 @@ import { analyzeImageWithOpenAI } from "../utils/image-analysis.js";
 import {
   classifyImage,
   getLicenseSettings,
+  getRegistrationReason,
 } from "../../shared/image-analysis.js";
 
 const upload = multer({
