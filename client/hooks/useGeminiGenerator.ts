@@ -106,19 +106,6 @@ const useGeminiGenerator = () => {
       let uploadedWatermarkedUrl: string | null = null;
       let uploadedOriginalUrl: string | null = null;
 
-      // First, add creation with uploading status
-      // Then update status after upload completes
-      addCreation(
-        finalUrl,
-        type,
-        options.prompt,
-        primaryWalletAddress || "",
-        remixType,
-        options.parentAsset,
-        undefined, // originalUrl will be set after upload
-        undefined, // watermarkedUrl will be set after upload
-      );
-
       if (shouldUpload && isSupabaseConfigured()) {
         try {
           setLoadingMessage("Uploading to storage...");
