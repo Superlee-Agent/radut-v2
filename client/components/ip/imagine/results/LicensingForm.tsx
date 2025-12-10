@@ -4,7 +4,6 @@ import { StoryClient, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
 import { createWalletClient, custom } from "viem";
 import { keccakOfJson } from "@/lib/utils/crypto";
 import { Address } from "viem";
-import { useTokenValidation } from "@/hooks/useTokenValidation";
 import { getInsufficientBalanceWarning } from "@/lib/utils/token-validation";
 
 // --- KONSTANTA ---
