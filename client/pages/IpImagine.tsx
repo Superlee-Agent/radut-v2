@@ -402,133 +402,147 @@ const IpImagine = () => {
       sidebarExtras={sidebarExtras}
       onLogoClick={() => navigate("/")}
     >
-      <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 pb-24 flex-1 overflow-y-auto bg-transparent scroll-smooth">
-        <AnimatePresence initial={false} mode="popLayout">
-          <CatalogBrowser
-            key="catalog-browser"
-            onRemixSelected={handleRemixSelected}
-            onAssetExpanded={setExpandedAsset}
-          />
-        </AnimatePresence>
+      <div className="relative w-full h-full overflow-hidden">
+        <video
+          autoPlay
+          muted
+          loop
+          className="absolute inset-0 w-full h-full object-cover"
+          src="https://cdn.builder.io/o/assets%2F2d031ad4ed8b46218a271cc55fdf3f5f%2F84477b6c6c134698a664cfde4f6a245a?alt=media&token=25dbdbfa-44dc-4217-bfdb-4bf384885d59&apiKey=2d031ad4ed8b46218a271cc55fdf3f5f"
+        />
+        <div className="relative z-10 flex flex-col w-full h-full">
+          <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 pb-24 flex-1 overflow-y-auto bg-transparent scroll-smooth">
+            <AnimatePresence initial={false} mode="popLayout">
+              <CatalogBrowser
+                key="catalog-browser"
+                onRemixSelected={handleRemixSelected}
+                onAssetExpanded={setExpandedAsset}
+              />
+            </AnimatePresence>
 
-        <div />
-      </div>
+            <div />
+          </div>
+          <IpImagineInput
+            input={input}
+            setInput={setInput}
+            waiting={waiting || isLoading}
+            previewImages={previewImages}
+            setPreviewImages={setPreviewImages}
+            uploadRef={uploadRef}
+            resultUrl={resultUrl}
+            resultUrls={resultUrls}
+            creations={creations}
+            onSubmit={async () => {
+              if (
+                !input.trim() &&
+                !previewImages.remixImage &&
+                !previewImages.additionalImage
+              )
+                return;
 
-      <IpImagineInput
-        input={input}
-        setInput={setInput}
-        waiting={waiting || isLoading}
-        previewImages={previewImages}
-        setPreviewImages={setPreviewImages}
-        uploadRef={uploadRef}
-        resultUrl={resultUrl}
-        resultUrls={resultUrls}
-        creations={creations}
-        onSubmit={async () => {
-          if (
-            !input.trim() &&
-            !previewImages.remixImage &&
-            !previewImages.additionalImage
-          )
-            return;
-
-          if (creationMode === "video") {
-            setStatusText("��� Video generation is coming soon!");
-            return;
-          }
-
-          // Validation: Prevent paid remix without proper state
-          if (currentRemixType === "paid") {
-            if (!currentParentAsset) {
-              setStatusText(
-                "Paid remix requires parent asset data. Please select a paid remix again.",
-              );
-              setWaiting(false);
-              return;
-            }
-            if (!authenticated || !primaryWalletAddress) {
-              setStatusText(
-                "Paid remix requires wallet connection. Please connect your wallet.",
-              );
-              setWaiting(false);
-              return;
-            }
-          }
-
-          setWaiting(true);
-          setStatusText("��� Starting generation...");
-
-          try {
-            const imageToSend =
-              previewImages.remixImage || previewImages.additionalImage;
-            let imageData: { imageBytes: string; mimeType: string } | undefined;
-
-            if (imageToSend) {
-              const blob = imageToSend.blob;
-              const arrayBuffer = await blob.arrayBuffer();
-              const bytes = new Uint8Array(arrayBuffer);
-
-              // Convert Uint8Array to base64 safely without stack overflow issues
-              let binaryString = "";
-              const chunkSize = 8192;
-              for (let i = 0; i < bytes.length; i += chunkSize) {
-                const chunk = bytes.subarray(
-                  i,
-                  Math.min(i + chunkSize, bytes.length),
-                );
-                binaryString += String.fromCharCode.apply(
-                  null,
-                  Array.from(chunk),
-                );
+              if (creationMode === "video") {
+                setStatusText("🎬 Video generation is coming soon!");
+                return;
               }
 
-              imageData = {
-                imageBytes: btoa(binaryString),
-                mimeType: blob.type || "image/jpeg",
-              };
-            }
+              // Validation: Prevent paid remix without proper state
+              if (currentRemixType === "paid") {
+                if (!currentParentAsset) {
+                  setStatusText(
+                    "Paid remix requires parent asset data. Please select a paid remix again.",
+                  );
+                  setWaiting(false);
+                  return;
+                }
+                if (!authenticated || !primaryWalletAddress) {
+                  setStatusText(
+                    "Paid remix requires wallet connection. Please connect your wallet.",
+                  );
+                  setWaiting(false);
+                  return;
+                }
+              }
 
-            await generate(creationMode, {
-              prompt: input,
-              image: imageData,
-              remixType: currentRemixType,
-              parentAsset: currentParentAsset,
-            });
+              setWaiting(true);
+              setStatusText("⏳ Starting generation...");
 
-            setInput("");
-            setPreviewImages({ remixImage: null, additionalImage: null });
-            setCurrentRemixType(null);
-            setCurrentParentAsset(null);
-          } catch (error) {
-            console.error("Generation error:", error);
-            setStatusText("❌ Generation failed. Please try again.");
-          } finally {
-            setWaiting(false);
-          }
-        }}
-        inputRef={inputRef}
-        handleKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            // trigger submit
-            (
-              document.querySelector("[data-chat-input]") as HTMLTextAreaElement
-            )?.blur();
-          }
-        }}
-        suggestions={[]}
-        setSuggestions={() => {}}
-        attachmentLoading={attachmentLoading}
-        onRemixRegisterWarning={() => {
-          setWaiting(false);
-          setStatusText(
-            "⚠ Remix images cannot be registered. Please remove the image to register.",
-          );
-        }}
-        onAddRemixImage={() => setShowAddRemixImageModal(true)}
-        creationMode={creationMode}
-        setCreationMode={setCreationMode}
-      />
+              try {
+                const imageToSend =
+                  previewImages.remixImage || previewImages.additionalImage;
+                let imageData:
+                  | { imageBytes: string; mimeType: string }
+                  | undefined;
+
+                if (imageToSend) {
+                  const blob = imageToSend.blob;
+                  const arrayBuffer = await blob.arrayBuffer();
+                  const bytes = new Uint8Array(arrayBuffer);
+
+                  // Convert Uint8Array to base64 safely without stack overflow issues
+                  let binaryString = "";
+                  const chunkSize = 8192;
+                  for (let i = 0; i < bytes.length; i += chunkSize) {
+                    const chunk = bytes.subarray(
+                      i,
+                      Math.min(i + chunkSize, bytes.length),
+                    );
+                    binaryString += String.fromCharCode.apply(
+                      null,
+                      Array.from(chunk),
+                    );
+                  }
+
+                  imageData = {
+                    imageBytes: btoa(binaryString),
+                    mimeType: blob.type || "image/jpeg",
+                  };
+                }
+
+                await generate(creationMode, {
+                  prompt: input,
+                  image: imageData,
+                  remixType: currentRemixType,
+                  parentAsset: currentParentAsset,
+                });
+
+                setInput("");
+                setPreviewImages({ remixImage: null, additionalImage: null });
+                setCurrentRemixType(null);
+                setCurrentParentAsset(null);
+              } catch (error) {
+                console.error("Generation error:", error);
+                setStatusText("❌ Generation failed. Please try again.");
+              } finally {
+                setWaiting(false);
+              }
+            }}
+            inputRef={inputRef}
+            handleKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                // trigger submit
+                (
+                  document.querySelector(
+                    "[data-chat-input]",
+                  ) as HTMLTextAreaElement
+                )?.blur();
+              }
+            }}
+            suggestions={[]}
+            setSuggestions={() => {}}
+            attachmentLoading={attachmentLoading}
+            onRemixRegisterWarning={() => {
+              setWaiting(false);
+              setStatusText(
+                "⚠ Remix images cannot be registered. Please remove the image to register.",
+              );
+            }}
+            onAddRemixImage={() => setShowAddRemixImageModal(true)}
+            creationMode={creationMode}
+            setCreationMode={setCreationMode}
+          />
+        </div>
+      </div>
 
       <input
         ref={uploadRef}
