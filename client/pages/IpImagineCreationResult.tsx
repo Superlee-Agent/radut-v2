@@ -137,22 +137,19 @@ const IpImagineCreationResult = () => {
     }
   }, [authenticated, primaryWalletAddress, context]);
 
-  // Clear creations when wallet disconnects (privacy protection)
+  // Note: Creations are no longer cleared on disconnect to allow reconnect to same wallet
+  // Clearing only happens when switching to a different wallet (handled in CreationContext)
+  // Clear local UI states on disconnect
   useEffect(() => {
     if (!authenticated) {
-      console.log(
-        "[IpImagineCreationResult] Wallet disconnected - clearing creations",
-      );
-      if (context?.clearCreations) {
-        context.clearCreations();
-      }
+      console.log("[IpImagineCreationResult] Wallet disconnected");
       // Clear all local UI states related to results
       setUpscaledUrl(null);
       setUpscalingCreationId(null);
       setExpandedCreationId(null);
       setShowUpscaler(false);
     }
-  }, [authenticated, context]);
+  }, [authenticated]);
 
   const handleDownload = () => {
     if (!displayUrl) return;
@@ -336,25 +333,27 @@ const IpImagineCreationResult = () => {
           </motion.div>
         )}
 
-        {creations
-          .filter((c) => {
-            // Only show creations from currently connected wallet
-            return (
-              c.walletAddress?.toLowerCase() ===
-              primaryWalletAddress?.toLowerCase()
-            );
-          })
-          .filter((c) => true).length > 0 && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Results</h2>
-            <button
-              onClick={() => navigate("/ip-imagine")}
-              className="px-4 py-2 rounded-lg font-semibold text-white transition-all duration-200 bg-slate-700 hover:bg-slate-600 hover:shadow-lg hover:shadow-slate-600/30"
-            >
-              ← Back
-            </button>
-          </div>
-        )}
+        {authenticated &&
+          primaryWalletAddress &&
+          creations
+            .filter((c) => {
+              // Only show creations from currently connected wallet
+              return (
+                c.walletAddress?.toLowerCase() ===
+                primaryWalletAddress?.toLowerCase()
+              );
+            })
+            .filter((c) => true).length > 0 && (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Results</h2>
+              <button
+                onClick={() => navigate("/ip-imagine")}
+                className="px-4 py-2 rounded-lg font-semibold text-white transition-all duration-200 bg-slate-700 hover:bg-slate-600 hover:shadow-lg hover:shadow-slate-600/30"
+              >
+                ← Back
+              </button>
+            </div>
+          )}
         <AnimatePresence mode="wait">
           {error ? (
             <motion.div
@@ -465,14 +464,17 @@ const IpImagineCreationResult = () => {
                 );
               })()}
             </motion.div>
-          ) : creations
+          ) : !authenticated ||
+            !primaryWalletAddress ||
+            (creations
               .filter((c) => {
                 return (
                   c.walletAddress?.toLowerCase() ===
                   primaryWalletAddress?.toLowerCase()
                 );
               })
-              .filter((c) => true).length === 0 && !isLoading ? (
+              .filter((c) => true).length === 0 &&
+              !isLoading) ? (
             <motion.div
               key="no-data"
               initial={{ opacity: 0 }}
