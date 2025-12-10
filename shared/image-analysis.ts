@@ -265,6 +265,59 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
   }
 }
 
+export function getRegistrationReason(
+  flags: ImageAnalysisFlags,
+  group: GroupNumber
+): string {
+  // Check for explicit content first (highest priority)
+  if (flags.content_analysis.contains_explicit_content) {
+    return "Contains explicit content";
+  }
+  if (flags.content_analysis.contains_violence) {
+    return "Contains violent content";
+  }
+  if (flags.content_analysis.contains_sensitive_subject) {
+    return "Contains sensitive subject matter";
+  }
+
+  // Check for brand or character
+  if (flags.has_known_brand_or_character) {
+    return "Contains known brand or character";
+  }
+
+  // Check for famous person face
+  if (flags.is_famous_person && flags.is_full_face_visible) {
+    return "Full face of famous person detected";
+  }
+
+  // Check for regular person face (full)
+  if (flags.has_human_face && flags.is_full_face_visible && !flags.is_famous_person) {
+    return "Full face of regular person detected (model release required)";
+  }
+
+  // Default reason based on group
+  const reasonByGroup: Record<GroupNumber, string> = {
+    1: "",
+    2: "Contains brand or character",
+    3: "Famous person with full face visible",
+    4: "",
+    5: "",
+    6: "",
+    7: "Contains brand or character",
+    8: "Famous person with full face visible",
+    9: "",
+    10: "",
+    11: "",
+    12: "",
+    13: "AI animation contains brand or character",
+    14: "",
+    15: "Contains restricted content",
+    16: "",
+  };
+
+  return reasonByGroup[group] || "";
+}
+
 export function getLicenseSettings(group: GroupNumber): LicenseSettings {
   switch (group) {
     // CAN REGISTER
