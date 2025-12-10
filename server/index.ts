@@ -14,14 +14,6 @@ import { handleGetSuggestions } from "./routes/get-suggestions.js";
 import { handleResolveIpName } from "./routes/resolve-ip-name.js";
 import { handleResolveOwnerDomain } from "./routes/resolve-owner-domain.js";
 import {
-  handleAddRemixHash,
-  handleCheckRemixHash,
-  handleGetRemixHashes,
-  handleClearRemixHashes,
-  handleGetRemixHashesFull,
-  handleDeleteRemixHash,
-} from "./routes/remix-hash-whitelist.js";
-import {
   handleGetWalletCreations,
   handleAddWalletCreation,
   handleDeleteWalletCreation,
@@ -80,6 +72,8 @@ async function fetchParentIpDetails(
 }
 
 export async function createServer() {
+  // Validate critical environment variables at startup
+  validateOpenAIApiKey();
 
   const app = express();
 
@@ -219,14 +213,6 @@ export async function createServer() {
 
   // Get typing suggestions endpoint (POST /api/get-suggestions)
   app.post("/api/get-suggestions", handleGetSuggestions);
-
-  // Remix hash whitelist endpoints
-  app.post("/api/add-remix-hash", handleAddRemixHash);
-  app.post("/api/check-remix-hash", handleCheckRemixHash);
-  app.get("/api/_admin/remix-hashes", handleGetRemixHashes);
-  app.get("/api/_admin/remix-hashes-full", handleGetRemixHashesFull);
-  app.post("/api/_admin/clear-remix-hashes", handleClearRemixHashes);
-  app.post("/api/_admin/delete-remix-hash", handleDeleteRemixHash);
 
   // Wallet creations endpoints (only wallet mode supported)
   app.get("/api/wallet-creations/:walletAddress", handleGetWalletCreations);
