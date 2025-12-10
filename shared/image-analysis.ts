@@ -43,6 +43,7 @@ export interface ImageAnalysisFlags {
   has_known_brand_or_character: boolean;
   title: string;
   description: string;
+  registration_reason: string;
 }
 
 export type GroupNumber =
