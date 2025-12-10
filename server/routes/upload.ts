@@ -1,6 +1,9 @@
 import multer from "multer";
 import { analyzeImageWithOpenAI } from "../utils/image-analysis.js";
-import { classifyImage, getLicenseSettings } from "../../shared/image-analysis.js";
+import {
+  classifyImage,
+  getLicenseSettings,
+} from "../../shared/image-analysis.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
