@@ -1,5 +1,4 @@
 import type { RequestHandler } from "express";
-import { addHashToWhitelist } from "../utils/remix-hash-whitelist.js";
 import crypto from "crypto";
 
 export const handleCaptureAssetVision: RequestHandler = async (req, res) => {
@@ -56,53 +55,13 @@ export const handleCaptureAssetVision: RequestHandler = async (req, res) => {
       console.warn(`Failed to fetch asset image: ${mediaUrl}`, err);
     }
 
-    // Generate hash from image buffer if available, or from URL
-    const hash = imageBuffer
-      ? crypto.createHash("sha256").update(imageBuffer).digest("hex")
-      : crypto.createHash("sha256").update(mediaUrl).digest("hex");
-
-    // Add asset to whitelist with full metadata
-    try {
-      await addHashToWhitelist(hash, {
-        ipId,
-        title: title || "Captured Asset",
-        timestamp: Date.now(),
-        mediaType: mediaType || "image",
-        ownerAddress,
-        description,
-        parentIpIds: parentIpIds || [],
-        licenseTermsIds: licenseTermsIds || [],
-        licenseTemplates: licenseTemplates || [],
-        parentIpDetails,
-        maxMintingFee,
-        maxRts,
-        maxRevenueShare,
-        licenseVisibility,
-        licenses: licenses || [],
-        isDerivative: isDerivative ?? false,
-        parentsCount: parentsCount ?? 0,
-      });
-
-      res.json({
-        ok: true,
-        captured: true,
-        ipId,
-        title: title || "Captured Asset",
-        hash,
-        whitelisted: true,
-      });
-    } catch (whitelistError) {
-      console.error("Failed to add asset to whitelist:", whitelistError);
-      // Still return success since asset was processed
-      res.json({
-        ok: true,
-        captured: true,
-        ipId,
-        title: title || "Captured Asset",
-        hash,
-        whitelisted: false,
-      });
-    }
+    // Return success for asset capture (whitelist functionality removed)
+    res.json({
+      ok: true,
+      captured: true,
+      ipId,
+      title: title || "Captured Asset",
+    });
   } catch (error) {
     console.error("Asset capture error:", error);
     // Even on error, return success for fire-and-forget
