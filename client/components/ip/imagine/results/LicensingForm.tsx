@@ -1,27 +1,10 @@
-import {
-  useState,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  forwardRef,
-} from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { StoryClient, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
-import {
-  createWalletClient,
-  custom,
-  createPublicClient,
-  http,
-  formatEther,
-} from "viem";
+import { createWalletClient, custom, parseEther, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { keccakOfJson } from "@/lib/utils/crypto";
 import { Address } from "viem";
-import {
-  getInsufficientBalanceWarning,
-  validateTokenBalance,
-  calculateTotalCost,
-} from "@/lib/utils/token-validation";
-import { getNetworkConfig } from "@/lib/network-config";
 
 // --- KONSTANTA ---
 const OFFCHAIN_LICENSE_TERMS_URI =
@@ -79,57 +62,6 @@ const LicensingFormComponent = (
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
 
-  // Get wallet address for token validation
-  const walletAddress = wallets?.[0]?.address || undefined;
-
-  // Balance state
-  const [balance, setBalance] = useState("0");
-  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
-
-  // Fetch balance on mount and when wallet changes
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (!walletAddress || !authenticated) {
-        setBalance("0");
-        return;
-      }
-
-      setIsBalanceLoading(true);
-      try {
-        const networkConfig = getNetworkConfig("mainnet");
-        const publicClient = createPublicClient({
-          transport: http(networkConfig.rpc),
-        });
-
-        const balanceInWei = await publicClient.getBalance({
-          address: walletAddress as `0x${string}`,
-        });
-
-        const formattedBalance = formatEther(balanceInWei);
-        setBalance(formattedBalance);
-      } catch (err) {
-        console.error("Failed to fetch balance:", err);
-        setBalance("0");
-      } finally {
-        setIsBalanceLoading(false);
-      }
-    };
-
-    fetchBalance();
-    // Refresh balance every 30 seconds
-    const interval = setInterval(fetchBalance, 30000);
-    return () => clearInterval(interval);
-  }, [walletAddress, authenticated]);
-
-  // Helper functions
-  const validateForRegistration = (license: any) => {
-    return validateTokenBalance(balance, license, true);
-  };
-
-  const getTotalCost = (license: any) => {
-    return calculateTotalCost(license, true);
-  };
-
   // State
   const [title, setTitle] = useState("AI Generated Image");
   const [description, setDescription] = useState(
@@ -143,8 +75,6 @@ const LicensingFormComponent = (
   const [currentStep, setCurrentStep] = useState<
     "idle" | "registering-derivative" | "claiming-revenue" | "success"
   >("idle");
-  const [tokenWarning, setTokenWarning] = useState<string | null>(null);
-  const [showTokenWarning, setShowTokenWarning] = useState(false);
 
   // Expose handleRegister to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -205,15 +135,6 @@ const LicensingFormComponent = (
       return setRegisterError("No commercial license found on parent IP");
     if (!authenticated)
       return setRegisterError("Please connect your wallet to register");
-
-    // --- TOKEN VALIDATION ---
-    const tokenValidation = validateForRegistration(parentLicense);
-    if (!tokenValidation.isValid) {
-      const warningMsg = getInsufficientBalanceWarning(balance, parentLicense);
-      setRegisterError(warningMsg);
-      setShowTokenWarning(true);
-      return;
-    }
 
     setIsRegistering(true);
     setRegisterError(null);
@@ -613,77 +534,6 @@ const LicensingFormComponent = (
         )}
       </div>
 
-      {/* Token Cost Information */}
-      {isPaidRemix && parentLicense && authenticated && (
-        <div
-          className={`rounded-lg p-4 border ${
-            balance &&
-            parseFloat(balance) >= parseFloat(getTotalCost(parentLicense))
-              ? "bg-emerald-500/10 border-emerald-500/30"
-              : "bg-red-500/10 border-red-500/30"
-          }`}
-        >
-          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">
-            💰 Token Requirements
-          </p>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-400">Minting Fee:</span>
-              <span className="text-slate-300 font-mono">
-                {(() => {
-                  let fee = 0;
-                  if (parentLicense.terms?.defaultMintingFee) {
-                    fee = Number(parentLicense.terms.defaultMintingFee);
-                  } else if (parentLicense.terms?.mintingFee) {
-                    fee = Number(parentLicense.terms.mintingFee);
-                  }
-                  return (fee / 1e18).toFixed(6);
-                })()}{" "}
-                IP
-              </span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-400">Gas Estimate:</span>
-              <span className="text-slate-300 font-mono">~0.5 IP</span>
-            </div>
-            <div className="border-t border-slate-600/30 pt-2 flex justify-between text-sm font-semibold">
-              <span className="text-slate-300">Total Required:</span>
-              <span className="text-slate-100 font-mono">
-                {getTotalCost(parentLicense)} IP
-              </span>
-            </div>
-            <div className="border-t border-slate-600/30 pt-2 flex justify-between text-sm font-semibold">
-              <span className="text-slate-300">Your Balance:</span>
-              <span
-                className={`font-mono ${
-                  balance &&
-                  parseFloat(balance) >= parseFloat(getTotalCost(parentLicense))
-                    ? "text-emerald-400"
-                    : "text-red-400"
-                }`}
-              >
-                {balance} IP
-              </span>
-            </div>
-          </div>
-          {balance &&
-            parseFloat(balance) < parseFloat(getTotalCost(parentLicense)) && (
-              <div className="mt-3 p-2 rounded bg-red-900/20 border border-red-500/20">
-                <p className="text-xs text-red-300">
-                  ⚠️ Insufficient balance to complete registration. Please add{" "}
-                  <span className="font-semibold">
-                    {(
-                      parseFloat(getTotalCost(parentLicense)) -
-                      parseFloat(balance)
-                    ).toFixed(6)}
-                  </span>{" "}
-                  more IP tokens.
-                </p>
-              </div>
-            )}
-        </div>
-      )}
-
       {/* Parent Asset Info */}
       {isPaidRemix && parentAsset && (
         <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
@@ -799,27 +649,6 @@ const LicensingFormComponent = (
 
       {/* Status Messages */}
       <div className="space-y-2 pt-3 border-t border-slate-800/50">
-        {/* Token Warning */}
-        {showTokenWarning &&
-          parentLicense &&
-          balance &&
-          parseFloat(balance) < parseFloat(getTotalCost(parentLicense)) && (
-            <div className="rounded-lg px-3 py-2.5 bg-red-500/10 border border-red-500/30 text-sm text-red-400">
-              <div className="font-semibold mb-1">❌ Insufficient Balance</div>
-              <div>
-                You need {getTotalCost(parentLicense)} IP tokens but only have{" "}
-                {balance} IP tokens.
-              </div>
-              <div className="text-xs mt-1">
-                Please add{" "}
-                {(
-                  parseFloat(getTotalCost(parentLicense)) - parseFloat(balance)
-                ).toFixed(6)}{" "}
-                more IP tokens to proceed.
-              </div>
-            </div>
-          )}
-
         {/* Registration Status */}
         {currentStep !== "idle" && currentStep !== "success" && (
           <div className="rounded-lg px-3 py-2.5 bg-blue-500/10 border border-blue-500/30 text-sm text-blue-400 flex items-center gap-2">
@@ -833,7 +662,7 @@ const LicensingFormComponent = (
         )}
 
         {/* Error Message */}
-        {registerError && !showTokenWarning && (
+        {registerError && (
           <div className="rounded-lg px-3 py-2.5 bg-red-500/10 border border-red-500/30 text-sm text-red-400 max-h-24 overflow-y-auto">
             {registerError}
           </div>
@@ -893,22 +722,14 @@ const LicensingFormComponent = (
               !authenticated ||
               isLoading ||
               !imageUrl ||
-              !isPaidRemix ||
-              (parentLicense &&
-                balance &&
-                parseFloat(balance) < parseFloat(getTotalCost(parentLicense)))
+              !isPaidRemix
             }
             className="w-full rounded-lg bg-[#FF4DA6]/20 px-4 py-2.5 text-sm font-semibold text-[#FF4DA6] hover:bg-[#FF4DA6]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-[#FF4DA6]/30"
             type="button"
             title={
-              !isPaidRemix
-                ? "Select a parent asset to enable licensing"
-                : parentLicense &&
-                    balance &&
-                    parseFloat(balance) <
-                      parseFloat(getTotalCost(parentLicense))
-                  ? `Insufficient balance. Need ${getTotalCost(parentLicense)} IP tokens, have ${balance} IP tokens`
-                  : `Register with ${parentRevSharePercentage.toFixed(2)}% revenue share from parent`
+              isPaidRemix
+                ? `Register with ${parentRevSharePercentage.toFixed(2)}% revenue share from parent`
+                : "Select a parent asset to enable licensing"
             }
           >
             {isRegistering
