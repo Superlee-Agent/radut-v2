@@ -14,8 +14,16 @@ interface ParentLicense {
   terms?: {
     commercialUse: boolean;
     commercialRevShare: number;
+    mintingFee?: string | number;
     [key: string]: any;
   };
+}
+
+interface LicenseConfig {
+  maxMintingFee: bigint;
+  maxRts: number;
+  maxRevenueShare: number;
+  description: string;
 }
 
 interface ParentAsset {
@@ -79,11 +87,41 @@ const LicensingFormComponent = (
   const isPaidRemix =
     parentAsset && parentAsset.licenses && parentAsset.licenses.length > 0;
   const parentLicense: ParentLicense | undefined = isPaidRemix
-    ? parentAsset.licenses.find((l) => l.terms?.commercialUse === true)
+    ? parentAsset.licenses[0]
     : undefined;
+
+  const isCommercialLicense =
+    parentLicense?.terms?.commercialUse === true;
 
   const parentRevShareScaled = parentLicense?.terms?.commercialRevShare ?? 0;
   const parentRevSharePercentage = Number(parentRevShareScaled) / 1000000;
+
+  // Get license configuration based on commercial/non-commercial
+  const getLicenseConfig = (): LicenseConfig => {
+    if (!isCommercialLicense) {
+      // Non-Commercial License (e.g., NCSR - Non-Commercial Social Remixing)
+      return {
+        maxMintingFee: 0n,
+        maxRts: 0,
+        maxRevenueShare: 0,
+        description: "Non-Commercial License: No fees or revenue share required",
+      };
+    }
+
+    // Commercial License
+    const mintingFee = parentLicense?.terms?.mintingFee
+      ? BigInt(String(parentLicense.terms.mintingFee))
+      : 0n;
+
+    return {
+      maxMintingFee: mintingFee,
+      maxRts: 100_000_000,
+      maxRevenueShare: 100,
+      description: `Commercial License: Minting Fee ${mintingFee > 0n ? "applies" : "not required"}, ${parentRevSharePercentage.toFixed(2)}% revenue share`,
+    };
+  };
+
+  const licenseConfig = getLicenseConfig();
 
   const handleConvertImageToFile = async (): Promise<File> => {
     if (!imageUrl) {
