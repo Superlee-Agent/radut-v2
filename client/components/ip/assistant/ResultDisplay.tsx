@@ -8,6 +8,7 @@ import {
   Eye,
   Image as ImageIcon,
 } from "lucide-react";
+import { ANSWER_DETAILS } from "@/lib/ip-assistant/answer-details";
 
 interface ResultDisplayProps {
   result: ClassificationResult | null;
@@ -17,6 +18,7 @@ interface ResultDisplayProps {
   onReset?: () => void;
   onRegister?: (ctxKey: string) => Promise<void>;
   ctxKey?: string;
+  groupNum?: number;
 }
 
 const AnalysisSection: React.FC<{
@@ -171,6 +173,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   onReset,
   onRegister,
   ctxKey,
+  groupNum,
 }) => {
   if (isLoading) {
     return (
@@ -254,6 +257,55 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 alt="Uploaded"
                 className="w-full h-auto rounded-md object-cover"
               />
+              {groupNum && (
+                <div className="mt-4 pt-4 border-t border-gray-700/30 space-y-3">
+                  {(() => {
+                    const info =
+                      ANSWER_DETAILS[
+                        String(groupNum) as keyof typeof ANSWER_DETAILS
+                      ];
+                    return (
+                      <>
+                        {info?.registrationStatus && (
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6] mb-1">
+                              Final Status
+                            </dt>
+                            <dd className="text-sm text-gray-300 flex items-center gap-2">
+                              {info.registrationStatus.includes("✅") && (
+                                <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">
+                                  ✓
+                                </span>
+                              )}
+                              {info.registrationStatus.includes("❌") && (
+                                <span className="w-5 h-5 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-400 text-xs font-bold flex-shrink-0">
+                                  ✕
+                                </span>
+                              )}
+                              {info.registrationStatus.includes("⚠️") && (
+                                <span className="w-5 h-5 rounded-full bg-yellow-600/20 border border-yellow-500/50 flex items-center justify-center text-yellow-400 text-xs font-bold flex-shrink-0">
+                                  !
+                                </span>
+                              )}
+                              <span>{info.registrationStatus}</span>
+                            </dd>
+                          </div>
+                        )}
+                        {info?.notes && (
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6] mb-1">
+                              Reason
+                            </dt>
+                            <dd className="text-sm text-gray-400">
+                              {info.notes}
+                            </dd>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         )}
