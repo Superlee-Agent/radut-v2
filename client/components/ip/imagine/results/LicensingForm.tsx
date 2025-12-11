@@ -323,15 +323,23 @@ const LicensingFormComponent = (
       });
 
       try {
+        console.log("📋 License Configuration:", {
+          type: isCommercialLicense ? "Commercial" : "Non-Commercial",
+          maxMintingFee: licenseConfig.maxMintingFee.toString(),
+          maxRts: licenseConfig.maxRts,
+          maxRevenueShare: licenseConfig.maxRevenueShare,
+          description: licenseConfig.description,
+        });
+
         const derivativeResponse =
           await storyClient.ipAsset.registerDerivativeIpAsset({
             nft: { type: "mint", spgNftContract: spg as Address },
             derivData: {
               parentIpIds: [parentAsset.ipId],
               licenseTermsIds: [BigInt(parentLicense.licenseTermsId)],
-              maxMintingFee: 0n,
-              maxRts: 100_000_000, // recommended value
-              maxRevenueShare: 100,
+              maxMintingFee: licenseConfig.maxMintingFee,
+              maxRts: licenseConfig.maxRts,
+              maxRevenueShare: licenseConfig.maxRevenueShare,
             },
             ipMetadata: {
               ipMetadataURI: ipMetadataUri,
