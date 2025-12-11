@@ -463,7 +463,8 @@ export function useIPRegistrationAgent() {
           console.error("❌ Mint and register transaction error:", {
             message: errorMsg,
             code: txError?.code,
-            error: txError,
+            errorName: txError?.name,
+            errorString: String(txError),
           });
 
           // Check if user rejected the transaction
