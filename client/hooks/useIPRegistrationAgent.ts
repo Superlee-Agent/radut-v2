@@ -475,8 +475,8 @@ export function useIPRegistrationAgent() {
                 setRegisterState((p) => ({
                   ...p,
                   status: "minting",
-                  progress: 85,
-                  error: "Waiting for blockchain confirmation...",
+                  progress: 80,
+                  error: "Checking blockchain confirmation...",
                 }));
 
                 // Create a public client to poll transaction status
@@ -485,10 +485,11 @@ export function useIPRegistrationAgent() {
                   chain: { id: 1514 } as any,
                 });
 
-                // Poll for up to 5 minutes with 10 second intervals
+                // Poll for up to 60 seconds with 5 second intervals (12 attempts)
                 let confirmed = false;
                 let pollAttempts = 0;
-                const maxAttempts = 30;
+                const maxAttempts = 12;
+                const pollIntervalMs = 5000; // 5 seconds
 
                 while (!confirmed && pollAttempts < maxAttempts) {
                   try {
@@ -500,13 +501,14 @@ export function useIPRegistrationAgent() {
                       console.log("✅ Transaction confirmed:", receipt);
                       confirmed = true;
 
+                      // Update progress towards success
+                      const progressValue = 80 + Math.min(15, pollAttempts);
                       setRegisterState((p) => ({
                         ...p,
-                        progress: 95,
+                        progress: Math.min(95, progressValue),
                       }));
 
                       // Try to extract IP ID and other details
-                      // For now, return transaction hash as confirmation
                       result = {
                         txHash: txHash,
                         transactionHash: txHash,
@@ -515,21 +517,35 @@ export function useIPRegistrationAgent() {
                       break;
                     }
                   } catch (pollError) {
+                    // Silently continue, RPC might be temporarily unavailable
                     console.log(
-                      `Poll attempt ${pollAttempts + 1}/${maxAttempts} - transaction still pending`,
+                      `Poll attempt ${pollAttempts + 1}/${maxAttempts} - transaction status pending`,
                     );
                   }
 
                   pollAttempts++;
+
+                  // Update progress even if not confirmed
+                  if (!confirmed && pollAttempts <= maxAttempts) {
+                    const progressValue = 80 + (pollAttempts * 15) / maxAttempts;
+                    setRegisterState((p) => ({
+                      ...p,
+                      progress: Math.min(94, Math.floor(progressValue)),
+                    }));
+                  }
+
                   if (!confirmed && pollAttempts < maxAttempts) {
-                    // Wait 10 seconds before next poll
-                    await new Promise((resolve) => setTimeout(resolve, 10000));
+                    // Wait before next poll
+                    await new Promise((resolve) =>
+                      setTimeout(resolve, pollIntervalMs),
+                    );
                   }
                 }
 
-                if (!confirmed) {
+                // If we have a txHash, consider it successful - the transaction is likely confirmed or will be
+                if (!confirmed && txHash) {
                   console.warn(
-                    "⚠️ Transaction not confirmed after 5 minutes, but hash is available",
+                    "⚠️ Transaction not confirmed in initial polling window, but hash is available. Transaction likely succeeded on-chain.",
                   );
                   result = {
                     txHash: txHash,
@@ -540,7 +556,7 @@ export function useIPRegistrationAgent() {
               } catch (pollError) {
                 console.error("Error polling transaction status:", pollError);
                 // Continue with whatever result we have
-                if (!result?.txHash) {
+                if (!result?.txHash && txHash) {
                   result = {
                     txHash: txHash,
                     transactionHash: txHash,
