@@ -8,6 +8,7 @@ import {
   Eye,
   Image as ImageIcon,
 } from "lucide-react";
+import { ANSWER_DETAILS } from "@/lib/ip-assistant/answer-details";
 
 interface ResultDisplayProps {
   result: ClassificationResult | null;
@@ -17,6 +18,7 @@ interface ResultDisplayProps {
   onReset?: () => void;
   onRegister?: (ctxKey: string) => Promise<void>;
   ctxKey?: string;
+  groupNum?: number;
 }
 
 const AnalysisSection: React.FC<{
@@ -171,6 +173,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   onReset,
   onRegister,
   ctxKey,
+  groupNum,
 }) => {
   if (isLoading) {
     return (
