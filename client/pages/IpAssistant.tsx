@@ -2351,7 +2351,8 @@ const IpAssistant = () => {
                                 Final Status
                               </dt>
                               <dd className="mt-1 text-sm text-slate-200">
-                                {info?.registrationStatus || "Analysis complete"}
+                                {info?.registrationStatus ||
+                                  "Analysis complete"}
                               </dd>
                             </div>
                             <div>
