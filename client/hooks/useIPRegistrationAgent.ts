@@ -475,7 +475,7 @@ export function useIPRegistrationAgent() {
                 setRegisterState((p) => ({
                   ...p,
                   status: "minting",
-                  progress: 80,
+                  progress: 92,
                   error: "Checking blockchain confirmation...",
                 }));
 
@@ -501,11 +501,10 @@ export function useIPRegistrationAgent() {
                       console.log("✅ Transaction confirmed:", receipt);
                       confirmed = true;
 
-                      // Update progress towards success
-                      const progressValue = 80 + Math.min(15, pollAttempts);
+                      // Update progress towards success (jump to 98)
                       setRegisterState((p) => ({
                         ...p,
-                        progress: Math.min(95, progressValue),
+                        progress: 98,
                       }));
 
                       // Try to extract IP ID and other details
@@ -525,13 +524,12 @@ export function useIPRegistrationAgent() {
 
                   pollAttempts++;
 
-                  // Update progress even if not confirmed
+                  // Update progress even if not confirmed (fast progression to 99)
                   if (!confirmed && pollAttempts <= maxAttempts) {
-                    const progressValue =
-                      80 + (pollAttempts * 15) / maxAttempts;
+                    const progressValue = 92 + (pollAttempts * 6) / maxAttempts;
                     setRegisterState((p) => ({
                       ...p,
-                      progress: Math.min(94, Math.floor(progressValue)),
+                      progress: Math.min(99, Math.floor(progressValue)),
                     }));
                   }
 
