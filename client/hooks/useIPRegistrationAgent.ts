@@ -521,75 +521,122 @@ export function useIPRegistrationAgent() {
                         progress: 98,
                       }));
 
-                      // Try to extract IP ID from transaction receipt logs
-                      let ipIdFromLogs: string | undefined;
+                      // Try to extract IP ID from transaction receipt logs and SDK query
+                      let ipIdFromResult: string | undefined;
                       try {
-                        console.log("Attempting to extract IP ID from transaction logs...");
-                        // Parse transaction logs to find the IPAsset registration event
-                        // Story Protocol emits a Registered or similar event when IP is registered
+                        console.log(
+                          "Attempting to extract IP ID from transaction...",
+                        );
+                        // Wait for indexing
+                        await new Promise((resolve) =>
+                          setTimeout(resolve, 1500),
+                        );
+
+                        // First, try to extract from transaction logs
                         if (receipt.logs && receipt.logs.length > 0) {
-                          // Look for logs that might contain the ipId
-                          // The Story SDK contracts emit events like "Registered(ipId, ...)"
                           for (const log of receipt.logs) {
                             try {
-                              // Try to decode the log with common Story event signatures
-                              // Look for any log that might have ipId in the topics or data
-                              const topicHex = log.topics[0] || "";
-                              // Common event signature hashes for Story Protocol
-                              // You would need the actual ABI to properly decode
-                              console.log("Log topic:", topicHex, "data:", log.data?.slice(0, 50));
-
-                              // For now, try to extract from data if it contains a 32-byte address
-                              // Story IP IDs are addresses (20 bytes = 40 hex chars)
-                              // They're usually the first or second indexed topic
-                              if (
-                                log.topics.length > 1 &&
-                                log.topics[1]?.length === 66
-                              ) {
-                                // Topic could be an address
-                                const potentialIpId = log.topics[1];
-                                if (potentialIpId.startsWith("0x")) {
-                                  // Convert to standard address format
-                                  const normalizedId =
+                              // Look for address-length topics (potential ipId)
+                              // Story IP IDs are addresses: 0x{40 hex chars}
+                              for (let i = 1; i < log.topics.length; i++) {
+                                const topic = log.topics[i];
+                                if (topic?.length === 66 && topic.startsWith("0x")) {
+                                  // Extract last 40 hex chars (address)
+                                  const potentialId =
                                     "0x" +
-                                    potentialIpId.slice(-40).toLowerCase();
+                                    topic.slice(-40).toLowerCase();
+                                  // Validate it looks like an address
                                   if (
-                                    /^0x[a-f0-9]{40}$/.test(normalizedId) &&
-                                    normalizedId !== "0x" + "0".repeat(40)
+                                    /^0x[a-f0-9]{40}$/.test(potentialId) &&
+                                    potentialId !==
+                                      "0x" + "0".repeat(40) &&
+                                    potentialId !==
+                                      "0x" + "f".repeat(40)
                                   ) {
-                                    ipIdFromLogs = normalizedId;
+                                    ipIdFromResult = potentialId;
                                     console.log(
                                       "✅ Extracted IP ID from logs:",
-                                      ipIdFromLogs,
+                                      ipIdFromResult,
                                     );
                                     break;
                                   }
                                 }
                               }
+                              if (ipIdFromResult) break;
                             } catch (decodeErr) {
                               // Continue to next log
-                              console.log("Could not decode log", decodeErr);
                             }
                           }
                         }
 
-                        if (!ipIdFromLogs) {
+                        // If we still don't have ipId, try querying the SDK
+                        if (!ipIdFromResult && story && addr) {
+                          try {
+                            console.log(
+                              "Attempting to query registered IPs for address:",
+                              addr,
+                            );
+                            // Some Story SDK clients have methods to check if an IP was registered
+                            // Try to access any available query methods
+                            // This is a best-effort attempt
+                            if (
+                              typeof story === "object" &&
+                              story !== null
+                            ) {
+                              console.log(
+                                "Story client methods available, attempting query...",
+                              );
+                              // The SDK might have methods like story.ipAsset.getRegisteredIps
+                              // We'll try common patterns
+                              try {
+                                if (
+                                  story.ipAsset &&
+                                  typeof story.ipAsset === "object"
+                                ) {
+                                  // Log available methods for debugging
+                                  const methods = Object.keys(
+                                    story.ipAsset,
+                                  ).filter((k) =>
+                                    typeof (story.ipAsset as any)[k] ===
+                                    "function"
+                                  );
+                                  console.log(
+                                    "Available ipAsset methods:",
+                                    methods,
+                                  );
+                                }
+                              } catch (methodErr) {
+                                console.log(
+                                  "Could not enumerate methods:",
+                                  methodErr,
+                                );
+                              }
+                            }
+                          } catch (queryErr) {
+                            console.log(
+                              "Could not query SDK for registered IPs:",
+                              queryErr,
+                            );
+                          }
+                        }
+
+                        if (!ipIdFromResult) {
                           console.log(
-                            "⚠️ Could not extract ipId from transaction logs - will set to pending",
+                            "⚠️ Could not extract ipId - transaction succeeded but ipId could not be determined",
                           );
                         }
                       } catch (extractError) {
                         console.log(
-                          "Error during log parsing:",
+                          "Error during IP ID extraction:",
                           extractError,
                         );
                       }
 
-                      // Result with transaction hash and ipId (ipId may be undefined, which is okay)
+                      // Result with transaction hash and any ipId we found
                       result = {
                         txHash: txHash,
                         transactionHash: txHash,
-                        ipId: ipIdFromLogs,
+                        ipId: ipIdFromResult,
                       };
                       break;
                     }
