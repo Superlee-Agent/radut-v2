@@ -600,6 +600,15 @@ export function useIPRegistrationAgent() {
           if (p.status === "success") {
             return p; // Already set to success, don't overwrite
           }
+
+          // Log warning if transaction succeeded but ipId is missing
+          if (!result?.ipId) {
+            console.warn(
+              "⚠️ Transaction succeeded but ipId is missing from result:",
+              result,
+            );
+          }
+
           return {
             status: "success",
             progress: 100,
