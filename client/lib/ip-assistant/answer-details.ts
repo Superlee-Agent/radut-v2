@@ -21,11 +21,10 @@ export const ANSWER_DETAILS: Record<
   "1": {
     type: "AI Generated",
     notes: "AI-generated image; No human face; No famous brand/character",
-    registrationStatus: "✅ IP can be registered",
-    action: "-",
-    smartLicensing:
-      "Commercial Remix License (manual minting fee & revenue share)",
-    aiTraining: "❌ Not allowed (fixed)",
+    registrationStatus: "⚠️ Requires Review",
+    action: "Start Review Process",
+    smartLicensing: "-",
+    aiTraining: "-",
   },
   "2": {
     type: "AI Generated",
