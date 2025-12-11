@@ -201,24 +201,6 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
 
   const { flags, classification, license } = result;
 
-  const statusIcons: Record<string, React.ReactNode> = {
-    CAN_REGISTER: (
-      <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-lg font-bold">
-        ✓
-      </div>
-    ),
-    CANNOT_REGISTER: (
-      <div className="w-7 h-7 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-400 text-lg font-bold">
-        ✕
-      </div>
-    ),
-    REQUIRES_REVIEW: (
-      <div className="w-7 h-7 rounded-full bg-pink-600/20 border border-pink-500/50 flex items-center justify-center text-pink-400 text-lg font-bold">
-        !
-      </div>
-    ),
-  };
-
   const buttonClasses: Record<string, string> = {
     green:
       "bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-colors duration-200 font-semibold",
