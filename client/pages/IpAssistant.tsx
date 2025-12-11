@@ -4115,6 +4115,11 @@ const IpAssistant = () => {
           </motion.div>
         </div>
       )}
+
+      <RegistrationLoadingModal
+        registerState={registerState}
+        isOpen={registerState.status !== "idle"}
+      />
     </DashboardLayout>
   );
 };
