@@ -409,7 +409,7 @@ export function useIPRegistrationAgent() {
         // Build license terms for Story SDK
         const licenseTermsData = [
           {
-            terms: PILFlavor.commercialRemix({
+            licenseTerms: PILFlavor.commercialRemix({
               commercialRevShare: Number(licenseSettings.revShare) || 0,
               defaultMintingFee: parseEther(
                 String(licenseSettings.licensePrice || 0),
@@ -447,6 +447,10 @@ export function useIPRegistrationAgent() {
             txHash: result?.txHash || result?.transactionHash,
             result,
           });
+
+          // Debug logging for license terms registration
+          console.log("Full result:", JSON.stringify(result, null, 2));
+          console.log("License Terms IDs:", result?.licenseTermsIds);
 
           // Accelerate to 100% success when contract interaction succeeds
           if (result?.ipId) {
