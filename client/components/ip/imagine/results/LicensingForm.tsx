@@ -14,8 +14,16 @@ interface ParentLicense {
   terms?: {
     commercialUse: boolean;
     commercialRevShare: number;
+    mintingFee?: string | number;
     [key: string]: any;
   };
+}
+
+interface LicenseConfig {
+  maxMintingFee: bigint;
+  maxRts: number;
+  maxRevenueShare: number;
+  description: string;
 }
 
 interface ParentAsset {
@@ -79,11 +87,41 @@ const LicensingFormComponent = (
   const isPaidRemix =
     parentAsset && parentAsset.licenses && parentAsset.licenses.length > 0;
   const parentLicense: ParentLicense | undefined = isPaidRemix
-    ? parentAsset.licenses.find((l) => l.terms?.commercialUse === true)
+    ? parentAsset.licenses[0]
     : undefined;
+
+  const isCommercialLicense = parentLicense?.terms?.commercialUse === true;
 
   const parentRevShareScaled = parentLicense?.terms?.commercialRevShare ?? 0;
   const parentRevSharePercentage = Number(parentRevShareScaled) / 1000000;
+
+  // Get license configuration based on commercial/non-commercial
+  const getLicenseConfig = (): LicenseConfig => {
+    if (!isCommercialLicense) {
+      // Non-Commercial License (e.g., NCSR - Non-Commercial Social Remixing)
+      return {
+        maxMintingFee: 0n,
+        maxRts: 0,
+        maxRevenueShare: 0,
+        description:
+          "Non-Commercial License: No fees or revenue share required",
+      };
+    }
+
+    // Commercial License
+    const mintingFee = parentLicense?.terms?.mintingFee
+      ? BigInt(String(parentLicense.terms.mintingFee))
+      : 0n;
+
+    return {
+      maxMintingFee: mintingFee,
+      maxRts: 100_000_000,
+      maxRevenueShare: 100,
+      description: `Commercial License: Minting Fee ${mintingFee > 0n ? "applies" : "not required"}, ${parentRevSharePercentage.toFixed(2)}% revenue share`,
+    };
+  };
+
+  const licenseConfig = getLicenseConfig();
 
   const handleConvertImageToFile = async (): Promise<File> => {
     if (!imageUrl) {
@@ -228,7 +266,8 @@ const LicensingFormComponent = (
 
       const ipMetadataObj = {
         title: title || "AI Generated Image",
-        description: description || "Created using AI image generation technology",
+        description:
+          description || "Created using AI image generation technology",
         ipType: "Image",
         createdAt: new Date().toISOString(),
         mediaUrl: imageUri,
@@ -236,7 +275,8 @@ const LicensingFormComponent = (
 
       const nftMetadataObj = {
         title: title || "AI Generated Image",
-        description: description || "Created using AI image generation technology",
+        description:
+          description || "Created using AI image generation technology",
         image: imageUri,
         attributes: [
           { trait_type: "Type", value: "AI Generated Derivative" },
@@ -258,21 +298,25 @@ const LicensingFormComponent = (
         method: "POST",
         body: ipMetadataFormData,
       });
-      if (!ipMetadataUploadRes.ok) throw new Error("Failed to upload IP metadata");
+      if (!ipMetadataUploadRes.ok)
+        throw new Error("Failed to upload IP metadata");
       const { url: ipMetadataUri } = await ipMetadataUploadRes.json();
 
       // Upload NFT metadata
       const nftMetadataFormData = new FormData();
       nftMetadataFormData.append(
         "file",
-        new Blob([JSON.stringify(nftMetadataObj)], { type: "application/json" }),
+        new Blob([JSON.stringify(nftMetadataObj)], {
+          type: "application/json",
+        }),
         "nft-metadata.json",
       );
       const nftMetadataUploadRes = await fetch("/api/ipfs/upload", {
         method: "POST",
         body: nftMetadataFormData,
       });
-      if (!nftMetadataUploadRes.ok) throw new Error("Failed to upload NFT metadata");
+      if (!nftMetadataUploadRes.ok)
+        throw new Error("Failed to upload NFT metadata");
       const { url: nftMetadataUri } = await nftMetadataUploadRes.json();
 
       // STEP 1: REGISTER DERIVATIVE IP ASSET
@@ -285,15 +329,23 @@ const LicensingFormComponent = (
       });
 
       try {
+        console.log("📋 License Configuration:", {
+          type: isCommercialLicense ? "Commercial" : "Non-Commercial",
+          maxMintingFee: licenseConfig.maxMintingFee.toString(),
+          maxRts: licenseConfig.maxRts,
+          maxRevenueShare: licenseConfig.maxRevenueShare,
+          description: licenseConfig.description,
+        });
+
         const derivativeResponse =
           await storyClient.ipAsset.registerDerivativeIpAsset({
             nft: { type: "mint", spgNftContract: spg as Address },
             derivData: {
               parentIpIds: [parentAsset.ipId],
               licenseTermsIds: [BigInt(parentLicense.licenseTermsId)],
-              maxMintingFee: 0n,
-              maxRts: 100_000_000, // recommended value
-              maxRevenueShare: 100,
+              maxMintingFee: licenseConfig.maxMintingFee,
+              maxRts: licenseConfig.maxRts,
+              maxRevenueShare: licenseConfig.maxRevenueShare,
             },
             ipMetadata: {
               ipMetadataURI: ipMetadataUri,
@@ -310,14 +362,19 @@ const LicensingFormComponent = (
         const errorMsg = registerError?.message || String(registerError);
         console.error("❌ Register derivative error:", errorMsg);
 
-        if (registerError?.code === 4001 || errorMsg.includes("User rejected")) {
+        if (
+          registerError?.code === 4001 ||
+          errorMsg.includes("User rejected")
+        ) {
           throw new Error("Transaction was rejected by the user");
         }
         if (errorMsg.includes("insufficient funds")) {
           throw new Error("Insufficient funds for gas and transaction");
         }
         if (errorMsg.includes("CallerNotAuthorizedToMint")) {
-          throw new Error("Your wallet is not authorized to mint on this contract");
+          throw new Error(
+            "Your wallet is not authorized to mint on this contract",
+          );
         }
 
         throw new Error(`Failed to register derivative IP: ${errorMsg}`);
@@ -340,21 +397,34 @@ const LicensingFormComponent = (
           currencyTokens: [WIP_TOKEN_ADDRESS],
           childIpIds: childIpId ? [childIpId] : [],
           // RoyaltyPolicyLAP address dari deployed contracts
-          royaltyPolicies: ["0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as Address],
+          royaltyPolicies: [
+            "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as Address,
+          ],
         });
 
-        console.log("✅ Parent claimed revenue:", revenueResponse.claimedTokens);
+        console.log(
+          "✅ Parent claimed revenue:",
+          revenueResponse.claimedTokens,
+        );
       } catch (revenueError: any) {
         // Non-critical error - derivative sudah terdaftar
-        console.warn("⚠️ Revenue claiming issue (non-critical):", revenueError?.message);
+        console.warn(
+          "⚠️ Revenue claiming issue (non-critical):",
+          revenueError?.message,
+        );
       }
 
       // FINALIZE
       setCurrentStep("success");
       setRegisteredIpId(childIpId || "pending");
       setRegisterSuccess(true);
+
+      const licenseTypeMsg = isCommercialLicense
+        ? `Commercial (${parentRevSharePercentage.toFixed(2)}% revenue share)`
+        : "Non-Commercial";
+
       setSuccessMessage(
-        `✅ Derivative registered with ${parentRevSharePercentage.toFixed(2)}% revenue share. Child IP: ${childIpId}`,
+        `✅ Derivative registered (${licenseTypeMsg}). Child IP: ${childIpId}`,
       );
 
       onRegisterComplete?.({
