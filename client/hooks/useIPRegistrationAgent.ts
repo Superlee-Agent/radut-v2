@@ -461,6 +461,11 @@ export function useIPRegistrationAgent() {
               ipId: result?.ipId,
               txHash: result?.txHash || result?.transactionHash,
             });
+            // Note: Story Portal may take time to index
+            console.log(
+              "⏳ Note: Story Portal may take time to index the license and IP. Check Story Explorer with transaction hash:",
+              result?.txHash || result?.transactionHash,
+            );
           } else {
             setRegisterState((p) => ({ ...p, progress: 95 }));
           }
