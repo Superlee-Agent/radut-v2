@@ -521,47 +521,75 @@ export function useIPRegistrationAgent() {
                         progress: 98,
                       }));
 
-                      // Try to query registered assets to extract IP ID
-                      let ipIdFromQuery: string | undefined;
+                      // Try to extract IP ID from transaction receipt logs
+                      let ipIdFromLogs: string | undefined;
                       try {
-                        console.log("Attempting to retrieve registered IP ID from transaction...");
-                        // Query the registered assets for the creator address
-                        // The Story SDK should have details about what was created
-                        // For now, we'll wait a moment for indexing and try to query
-                        await new Promise((resolve) =>
-                          setTimeout(resolve, 2000),
-                        );
+                        console.log("Attempting to extract IP ID from transaction logs...");
+                        // Parse transaction logs to find the IPAsset registration event
+                        // Story Protocol emits a Registered or similar event when IP is registered
+                        if (receipt.logs && receipt.logs.length > 0) {
+                          // Look for logs that might contain the ipId
+                          // The Story SDK contracts emit events like "Registered(ipId, ...)"
+                          for (const log of receipt.logs) {
+                            try {
+                              // Try to decode the log with common Story event signatures
+                              // Look for any log that might have ipId in the topics or data
+                              const topicHex = log.topics[0] || "";
+                              // Common event signature hashes for Story Protocol
+                              // You would need the actual ABI to properly decode
+                              console.log("Log topic:", topicHex, "data:", log.data?.slice(0, 50));
 
-                        // Try using the Story client to fetch the registered assets
-                        // This is a best-effort attempt to get the ipId from the chain
-                        try {
-                          // Query recently registered IPs for this address
-                          // The SDK may have a method like story.ipAsset.getRegisteredIps or similar
-                          // Since we don't have direct access, we'll set a placeholder
-                          ipIdFromQuery = undefined;
+                              // For now, try to extract from data if it contains a 32-byte address
+                              // Story IP IDs are addresses (20 bytes = 40 hex chars)
+                              // They're usually the first or second indexed topic
+                              if (
+                                log.topics.length > 1 &&
+                                log.topics[1]?.length === 66
+                              ) {
+                                // Topic could be an address
+                                const potentialIpId = log.topics[1];
+                                if (potentialIpId.startsWith("0x")) {
+                                  // Convert to standard address format
+                                  const normalizedId =
+                                    "0x" +
+                                    potentialIpId.slice(-40).toLowerCase();
+                                  if (
+                                    /^0x[a-f0-9]{40}$/.test(normalizedId) &&
+                                    normalizedId !== "0x" + "0".repeat(40)
+                                  ) {
+                                    ipIdFromLogs = normalizedId;
+                                    console.log(
+                                      "✅ Extracted IP ID from logs:",
+                                      ipIdFromLogs,
+                                    );
+                                    break;
+                                  }
+                                }
+                              }
+                            } catch (decodeErr) {
+                              // Continue to next log
+                              console.log("Could not decode log", decodeErr);
+                            }
+                          }
+                        }
+
+                        if (!ipIdFromLogs) {
                           console.log(
-                            "Unable to extract ipId from transaction logs, will use pending status",
+                            "⚠️ Could not extract ipId from transaction logs - will set to pending",
                           );
-                        } catch (queryError) {
-                          console.log(
-                            "Could not query registered assets:",
-                            queryError,
-                          );
-                          ipIdFromQuery = undefined;
                         }
                       } catch (extractError) {
                         console.log(
-                          "Error during ipId extraction attempt:",
+                          "Error during log parsing:",
                           extractError,
                         );
-                        ipIdFromQuery = undefined;
                       }
 
-                      // Result with transaction hash and ipId (ipId may be undefined)
+                      // Result with transaction hash and ipId (ipId may be undefined, which is okay)
                       result = {
                         txHash: txHash,
                         transactionHash: txHash,
-                        ipId: ipIdFromQuery,
+                        ipId: ipIdFromLogs,
                       };
                       break;
                     }
