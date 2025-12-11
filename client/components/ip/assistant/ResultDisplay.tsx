@@ -255,19 +255,10 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                             </dt>
                             <dd className="text-sm text-gray-300 flex items-center gap-2">
                               {info.registrationStatus.includes("✅") && (
-                                <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">
-                                  ✓
-                                </span>
                               )}
                               {info.registrationStatus.includes("❌") && (
-                                <span className="w-5 h-5 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-400 text-xs font-bold flex-shrink-0">
-                                  ✕
-                                </span>
                               )}
                               {info.registrationStatus.includes("⚠️") && (
-                                <span className="w-5 h-5 rounded-full bg-yellow-600/20 border border-yellow-500/50 flex items-center justify-center text-yellow-400 text-xs font-bold flex-shrink-0">
-                                  !
-                                </span>
                               )}
                               <span>{info.registrationStatus}</span>
                             </dd>
