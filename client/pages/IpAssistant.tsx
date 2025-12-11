@@ -1513,6 +1513,7 @@ const IpAssistant = () => {
                 },
                 additionalImage: null,
               }));
+              setInput("register");
               setAttachmentLoading(false);
               return;
             }
@@ -1560,6 +1561,7 @@ const IpAssistant = () => {
             url,
           },
         }));
+        setInput("register");
       } catch (error: any) {
         console.error("handleImage error", error);
         const message = error?.message
