@@ -127,8 +127,8 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
   ) {
     return {
       group: 15,
-      type: "Restricted Content",
-      classification: "Contains sensitive or explicit material",
+      type: "Cannot Register",
+      classification: "Contains restricted material",
     };
   }
 
@@ -154,8 +154,8 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
         return has_known_brand_or_character
           ? {
               group: 15,
-              type: "Non-AI Animation",
-              classification: "Contains Brand/Character",
+              type: "Cannot Register",
+              classification: "Non-AI Animation with Brand/Character",
             }
           : {
               group: 14,
@@ -315,7 +315,7 @@ export function getLicenseSettings(group: GroupNumber): LicenseSettings {
         status: RegistrationStatus.REQUIRES_REVIEW,
         title: "Requires Review",
         description:
-          "This image requires manual review. AI-generated content without faces (Group 1) needs verification, and images with identifiable faces (Groups 5, 10) require a model release.",
+          "This image requires manual review. AI-generated content or uncertain origins need verification, and images with identifiable faces require a model release or consent documentation.",
         buttonText: "Start Review Process",
         color: "yellow",
       };
