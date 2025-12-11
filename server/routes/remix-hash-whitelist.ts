@@ -329,6 +329,8 @@ export const handleCheckRemixHash: RequestHandler = async (
       return res.json({
         found: true,
         type: "exact",
+        ipId: entry.metadata?.ipId,
+        title: entry.metadata?.title,
         metadata: entry.metadata,
         derivativesAllowed,
       });
