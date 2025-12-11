@@ -2316,7 +2316,7 @@ const IpAssistant = () => {
                       <div className="text-xs text-slate-400">
                         Status: {registerState.status}{" "}
                         {registerState.progress
-                          ? `(${registerState.progress}%)`
+                          ? `(${Math.min(registerState.progress, 100)}%)`
                           : ""}
                         {registerState.status === "success" &&
                         registerState.ipId ? (
