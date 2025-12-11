@@ -127,8 +127,8 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
   ) {
     return {
       group: 15,
-      type: "Restricted Content",
-      classification: "Contains sensitive or explicit material",
+      type: "Cannot Register",
+      classification: "Contains restricted material",
     };
   }
 
