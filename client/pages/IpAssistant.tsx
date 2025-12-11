@@ -2034,6 +2034,31 @@ const IpAssistant = () => {
                   className="flex items-start mb-3 gap-2 px-1 md:px-2 last:mb-1"
                 >
                   <div className="bg-slate-900/70 px-4 py-2.5 rounded-2xl max-w-[85%] md:max-w-[65%] break-words text-slate-100">
+                    {registerState.status === "success" && (
+                      <div className="mb-4 pb-3 border-b border-slate-700/50">
+                        <div className="space-y-2">
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6]">
+                              Final Status
+                            </dt>
+                            <dd className="mt-1 text-sm text-slate-200 flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xs font-bold">
+                                ✓
+                              </span>
+                              {info?.registrationStatus || "Analysis complete"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6]">
+                              Reason
+                            </dt>
+                            <dd className="mt-1 text-sm text-slate-300">
+                              {info?.notes}
+                            </dd>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="text-sm font-semibold text-[#FF4DA6]">
                       Smart Licensing
                     </div>
@@ -2342,30 +2367,6 @@ const IpAssistant = () => {
                           </span>
                         ) : null}
                       </div>
-
-                      {registerState.status === "success" && (
-                        <div className="mt-4 pt-3 border-t border-slate-700/50">
-                          <div className="space-y-3">
-                            <div>
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6]">
-                                Final Status
-                              </dt>
-                              <dd className="mt-1 text-sm text-slate-200">
-                                {info?.registrationStatus ||
-                                  "Analysis complete"}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6]">
-                                Reason
-                              </dt>
-                              <dd className="mt-1 text-sm text-slate-300">
-                                {info?.notes}
-                              </dd>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </motion.div>

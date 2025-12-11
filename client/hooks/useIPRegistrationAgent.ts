@@ -512,7 +512,7 @@ export function useIPRegistrationAgent() {
                       result = {
                         txHash: txHash,
                         transactionHash: txHash,
-                        ipId: result?.ipId || txHash,
+                        ipId: result?.ipId,
                       };
                       break;
                     }
@@ -551,7 +551,7 @@ export function useIPRegistrationAgent() {
                   result = {
                     txHash: txHash,
                     transactionHash: txHash,
-                    ipId: result?.ipId || txHash,
+                    ipId: result?.ipId,
                   };
                 }
               } catch (pollError) {
@@ -561,7 +561,7 @@ export function useIPRegistrationAgent() {
                   result = {
                     txHash: txHash,
                     transactionHash: txHash,
-                    ipId: result?.ipId || txHash,
+                    ipId: result?.ipId,
                   };
                 }
               }
