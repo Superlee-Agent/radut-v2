@@ -256,40 +256,44 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 className="w-full h-auto rounded-md object-cover"
               />
 
-              {/* Key insights below image */}
+              {/* Final Conclusion below image */}
               <div className="mt-3 pt-3 border-t border-gray-700/30 space-y-2">
-                {/* AI Probability */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">AI Probability</span>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    flags.ai_generation_analysis.likelihood === "High" ? "bg-red-600/40 text-red-300" :
-                    flags.ai_generation_analysis.likelihood === "Medium" ? "bg-yellow-600/40 text-yellow-300" :
-                    flags.ai_generation_analysis.likelihood === "Low" ? "bg-cyan-600/40 text-cyan-300" :
-                    "bg-emerald-600/40 text-emerald-300"
-                  }`}>
-                    {flags.ai_generation_analysis.likelihood}
-                  </span>
-                </div>
+                {/* Registration Status - Main conclusion */}
+                {(() => {
+                  const groupStr = String(classification.group);
+                  const details = ANSWER_DETAILS[groupStr];
+                  const statusMessage = details?.registrationStatus || license.buttonText;
+                  const isCanRegister = license.status === "CAN_REGISTER";
 
-                {/* Confidence Score */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Confidence</span>
-                  <span className="text-xs font-semibold text-white">
-                    {(flags.ai_generation_analysis.confidence_score * 100).toFixed(0)}%
-                  </span>
-                </div>
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xs text-gray-400">Final Status</span>
+                      <p className={`text-xs font-semibold leading-tight ${
+                        statusMessage?.includes("✅") ? "text-emerald-300" :
+                        statusMessage?.includes("❌") ? "text-red-300" :
+                        "text-yellow-300"
+                      }`}>
+                        {statusMessage}
+                      </p>
+                    </div>
+                  );
+                })()}
 
-                {/* Registration Status */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Can Register</span>
-                  <div className="flex items-center gap-1">
-                    {statusIcons[license.status]}
-                    <span className="text-xs font-semibold text-white">
-                      {license.status === "CAN_REGISTER" ? "Yes" :
-                       license.status === "CANNOT_REGISTER" ? "No" : "Review"}
-                    </span>
-                  </div>
-                </div>
+                {/* Reason/Notes */}
+                {(() => {
+                  const groupStr = String(classification.group);
+                  const details = ANSWER_DETAILS[groupStr];
+                  const notes = details?.notes;
+
+                  return notes ? (
+                    <div className="flex flex-col gap-1.5 text-xs">
+                      <span className="text-gray-400">Reason</span>
+                      <p className="text-gray-300 leading-tight">
+                        {notes}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>
