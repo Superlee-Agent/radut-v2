@@ -8,6 +8,7 @@ import {
   Eye,
   Image as ImageIcon,
 } from "lucide-react";
+import { ANSWER_DETAILS } from "@/lib/ip-assistant/answer-details";
 
 interface ResultDisplayProps {
   result: ClassificationResult | null;
@@ -254,6 +255,51 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 alt="Uploaded"
                 className="w-full h-auto rounded-md object-cover"
               />
+
+              {/* Final Conclusion below image */}
+              <div className="mt-3 pt-3 border-t border-gray-700/30 space-y-2">
+                {/* Registration Status - Main conclusion */}
+                {(() => {
+                  const groupStr = String(classification.group);
+                  const details = ANSWER_DETAILS[groupStr];
+                  const statusMessage =
+                    details?.registrationStatus || license.buttonText;
+                  const isCanRegister = license.status === "CAN_REGISTER";
+
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xs text-gray-400">
+                        Final Status
+                      </span>
+                      <p
+                        className={`text-xs font-semibold leading-tight ${
+                          statusMessage?.includes("✅")
+                            ? "text-emerald-300"
+                            : statusMessage?.includes("❌")
+                              ? "text-red-300"
+                              : "text-yellow-300"
+                        }`}
+                      >
+                        {statusMessage}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {/* Reason/Notes */}
+                {(() => {
+                  const groupStr = String(classification.group);
+                  const details = ANSWER_DETAILS[groupStr];
+                  const notes = details?.notes;
+
+                  return notes ? (
+                    <div className="flex flex-col gap-1.5 text-xs">
+                      <span className="text-gray-400">Reason</span>
+                      <p className="text-gray-300 leading-tight">{notes}</p>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
             </div>
           </div>
         )}

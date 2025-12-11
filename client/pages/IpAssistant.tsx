@@ -1513,6 +1513,7 @@ const IpAssistant = () => {
                 },
                 additionalImage: null,
               }));
+              setInput("register");
               setAttachmentLoading(false);
               return;
             }
@@ -1560,6 +1561,7 @@ const IpAssistant = () => {
             url,
           },
         }));
+        setInput("register");
       } catch (error: any) {
         console.error("handleImage error", error);
         const message = error?.message
@@ -1843,6 +1845,18 @@ const IpAssistant = () => {
                                 if (!ctxKeyForMsg) return;
                                 if (loadingRegisterFor === ctxKeyForMsg) return;
                                 setLoadingRegisterFor(ctxKeyForMsg);
+                                autoScrollNextRef.current = true;
+
+                                // Show loading message
+                                const loadingMsgId = `msg-loading-${ctxKeyForMsg}`;
+                                pushMessage({
+                                  id: loadingMsgId,
+                                  from: "bot",
+                                  text: "Loading Smart Licensing...",
+                                  isProcessing: true,
+                                  ts: getCurrentTimestamp(),
+                                });
+
                                 const groupNum =
                                   msg.analysisResult?.classification.group || 1;
                                 let title = "";
@@ -1894,6 +1908,11 @@ const IpAssistant = () => {
                                   title = title.slice(0, 59) + "…";
                                 if (desc.length > 120)
                                   desc = desc.slice(0, 119) + "…";
+
+                                // Remove loading message and show register form
+                                setMessages((prev) =>
+                                  prev.filter((m) => m.id !== loadingMsgId),
+                                );
                                 pushMessage({
                                   from: "register",
                                   group: groupNum,
