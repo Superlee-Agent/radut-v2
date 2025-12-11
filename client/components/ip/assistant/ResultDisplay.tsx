@@ -173,6 +173,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   onReset,
   onRegister,
   ctxKey,
+  groupNum,
 }) => {
   if (isLoading) {
     return (
