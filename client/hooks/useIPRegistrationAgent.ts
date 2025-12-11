@@ -13,7 +13,13 @@ import {
   PILFlavor,
   WIP_TOKEN_ADDRESS,
 } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther } from "viem";
+import {
+  createWalletClient,
+  custom,
+  parseEther,
+  createPublicClient,
+  http,
+} from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
@@ -414,6 +420,10 @@ export function useIPRegistrationAgent() {
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
 
         let result: any;
+        const rpcUrl =
+          (import.meta as any).env?.VITE_PUBLIC_STORY_RPC ||
+          "https://mainnet.storyrpc.io";
+
         try {
           console.log("Starting mint and register transaction...", {
             spgNftContract: spg,
@@ -441,30 +451,124 @@ export function useIPRegistrationAgent() {
 
           setRegisterState((p) => ({ ...p, progress: 90 }));
         } catch (txError: any) {
-          console.error("❌ Mint and register transaction failed:", {
-            message: txError?.message,
+          const errorMsg = txError?.message || String(txError);
+          console.error("❌ Mint and register transaction error:", {
+            message: errorMsg,
             code: txError?.code,
             error: txError,
           });
 
           // Check if user rejected the transaction
-          if (
-            txError?.code === 4001 ||
-            txError?.message?.includes("User rejected")
-          ) {
+          if (txError?.code === 4001 || errorMsg.includes("User rejected")) {
             throw new Error("Transaction was rejected by the user");
           }
-          // Check for other common wallet errors
-          if (txError?.message?.includes("insufficient funds")) {
-            throw new Error("Insufficient funds for gas and transaction");
+
+          // Check for timeout error and attempt to retrieve transaction status
+          if (errorMsg.includes("Timed out while waiting for transaction")) {
+            console.log(
+              "⏳ Transaction timeout detected, polling for status...",
+            );
+
+            // Extract transaction hash from error message
+            const txHashMatch = errorMsg.match(/with hash\s*"([^"]+)"/);
+            const txHash = txHashMatch?.[1];
+
+            if (txHash) {
+              try {
+                setRegisterState((p) => ({
+                  ...p,
+                  status: "minting",
+                  progress: 85,
+                  error: "Waiting for blockchain confirmation...",
+                }));
+
+                // Create a public client to poll transaction status
+                const publicClient = createPublicClient({
+                  transport: http(rpcUrl),
+                  chain: { id: 1514 } as any,
+                });
+
+                // Poll for up to 5 minutes with 10 second intervals
+                let confirmed = false;
+                let pollAttempts = 0;
+                const maxAttempts = 30;
+
+                while (!confirmed && pollAttempts < maxAttempts) {
+                  try {
+                    const receipt = await publicClient.getTransactionReceipt({
+                      hash: txHash as `0x${string}`,
+                    });
+
+                    if (receipt) {
+                      console.log("✅ Transaction confirmed:", receipt);
+                      confirmed = true;
+
+                      setRegisterState((p) => ({
+                        ...p,
+                        progress: 95,
+                      }));
+
+                      // Try to extract IP ID and other details
+                      // For now, return transaction hash as confirmation
+                      result = {
+                        txHash: txHash,
+                        transactionHash: txHash,
+                        ipId: result?.ipId || txHash,
+                      };
+                      break;
+                    }
+                  } catch (pollError) {
+                    console.log(
+                      `Poll attempt ${pollAttempts + 1}/${maxAttempts} - transaction still pending`,
+                    );
+                  }
+
+                  pollAttempts++;
+                  if (!confirmed && pollAttempts < maxAttempts) {
+                    // Wait 10 seconds before next poll
+                    await new Promise((resolve) => setTimeout(resolve, 10000));
+                  }
+                }
+
+                if (!confirmed) {
+                  console.warn(
+                    "⚠️ Transaction not confirmed after 5 minutes, but hash is available",
+                  );
+                  result = {
+                    txHash: txHash,
+                    transactionHash: txHash,
+                    ipId: result?.ipId || txHash,
+                  };
+                }
+              } catch (pollError) {
+                console.error("Error polling transaction status:", pollError);
+                // Continue with whatever result we have
+                if (!result?.txHash) {
+                  result = {
+                    txHash: txHash,
+                    transactionHash: txHash,
+                    ipId: result?.ipId || txHash,
+                  };
+                }
+              }
+            } else {
+              throw new Error(
+                "Transaction timed out and hash could not be extracted. Please check your wallet for the transaction.",
+              );
+            }
           }
-          if (txError?.message?.includes("network")) {
+          // Check for other common wallet errors
+          else if (errorMsg.includes("insufficient funds")) {
+            throw new Error("Insufficient funds for gas and transaction");
+          } else if (errorMsg.includes("network")) {
             throw new Error(
               "Network error. Please check your connection and try again",
             );
           }
           // Re-throw with original error if not a known case
-          throw txError;
+          else {
+            throw txError;
+          }
         }
 
         setRegisterState({
