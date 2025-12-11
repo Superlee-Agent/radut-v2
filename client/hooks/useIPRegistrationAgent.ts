@@ -19,6 +19,8 @@ import {
   parseEther,
   createPublicClient,
   http,
+  decodeEventLog,
+  parseAbiItem,
 } from "viem";
 import {
   getLicenseSettingsByGroup,
@@ -519,11 +521,120 @@ export function useIPRegistrationAgent() {
                         progress: 98,
                       }));
 
-                      // Try to extract IP ID and other details
+                      // Try to extract IP ID from transaction receipt logs and SDK query
+                      let ipIdFromResult: string | undefined;
+                      try {
+                        console.log(
+                          "Attempting to extract IP ID from transaction...",
+                        );
+                        // Wait for indexing
+                        await new Promise((resolve) =>
+                          setTimeout(resolve, 1500),
+                        );
+
+                        // First, try to extract from transaction logs
+                        if (receipt.logs && receipt.logs.length > 0) {
+                          for (const log of receipt.logs) {
+                            try {
+                              // Look for address-length topics (potential ipId)
+                              // Story IP IDs are addresses: 0x{40 hex chars}
+                              for (let i = 1; i < log.topics.length; i++) {
+                                const topic = log.topics[i];
+                                if (
+                                  topic?.length === 66 &&
+                                  topic.startsWith("0x")
+                                ) {
+                                  // Extract last 40 hex chars (address)
+                                  const potentialId =
+                                    "0x" + topic.slice(-40).toLowerCase();
+                                  // Validate it looks like an address
+                                  if (
+                                    /^0x[a-f0-9]{40}$/.test(potentialId) &&
+                                    potentialId !== "0x" + "0".repeat(40) &&
+                                    potentialId !== "0x" + "f".repeat(40)
+                                  ) {
+                                    ipIdFromResult = potentialId;
+                                    console.log(
+                                      "✅ Extracted IP ID from logs:",
+                                      ipIdFromResult,
+                                    );
+                                    break;
+                                  }
+                                }
+                              }
+                              if (ipIdFromResult) break;
+                            } catch (decodeErr) {
+                              // Continue to next log
+                            }
+                          }
+                        }
+
+                        // If we still don't have ipId, try querying the SDK
+                        if (!ipIdFromResult && story && addr) {
+                          try {
+                            console.log(
+                              "Attempting to query registered IPs for address:",
+                              addr,
+                            );
+                            // Some Story SDK clients have methods to check if an IP was registered
+                            // Try to access any available query methods
+                            // This is a best-effort attempt
+                            if (typeof story === "object" && story !== null) {
+                              console.log(
+                                "Story client methods available, attempting query...",
+                              );
+                              // The SDK might have methods like story.ipAsset.getRegisteredIps
+                              // We'll try common patterns
+                              try {
+                                if (
+                                  story.ipAsset &&
+                                  typeof story.ipAsset === "object"
+                                ) {
+                                  // Log available methods for debugging
+                                  const methods = Object.keys(
+                                    story.ipAsset,
+                                  ).filter(
+                                    (k) =>
+                                      typeof (story.ipAsset as any)[k] ===
+                                      "function",
+                                  );
+                                  console.log(
+                                    "Available ipAsset methods:",
+                                    methods,
+                                  );
+                                }
+                              } catch (methodErr) {
+                                console.log(
+                                  "Could not enumerate methods:",
+                                  methodErr,
+                                );
+                              }
+                            }
+                          } catch (queryErr) {
+                            console.log(
+                              "Could not query SDK for registered IPs:",
+                              queryErr,
+                            );
+                          }
+                        }
+
+                        if (!ipIdFromResult) {
+                          console.log(
+                            "⚠️ Could not extract ipId - transaction succeeded but ipId could not be determined",
+                          );
+                        }
+                      } catch (extractError) {
+                        console.log(
+                          "Error during IP ID extraction:",
+                          extractError,
+                        );
+                      }
+
+                      // Result with transaction hash and any ipId we found
                       result = {
                         txHash: txHash,
                         transactionHash: txHash,
-                        ipId: result?.ipId,
+                        ipId: ipIdFromResult,
                       };
                       break;
                     }
@@ -561,7 +672,7 @@ export function useIPRegistrationAgent() {
                   result = {
                     txHash: txHash,
                     transactionHash: txHash,
-                    ipId: result?.ipId,
+                    ipId: undefined,
                   };
                 }
               } catch (pollError) {
@@ -596,7 +707,7 @@ export function useIPRegistrationAgent() {
         }
 
         // Only set success if not already set during transaction submission
-        setRegisterState((p) => {
+        const finalResult = setRegisterState((p) => {
           if (p.status === "success") {
             return p; // Already set to success, don't overwrite
           }
@@ -606,6 +717,11 @@ export function useIPRegistrationAgent() {
             console.warn(
               "⚠️ Transaction succeeded but ipId is missing from result:",
               result,
+            );
+            console.log(
+              "Transaction Hash available:",
+              result?.txHash,
+              "- User can view transaction on explorer using this hash",
             );
           }
 
@@ -617,6 +733,7 @@ export function useIPRegistrationAgent() {
             txHash: result?.txHash || result?.transactionHash,
           };
         });
+
         return {
           success: true,
           ipId: result?.ipId,
