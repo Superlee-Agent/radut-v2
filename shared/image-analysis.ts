@@ -154,8 +154,8 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
         return has_known_brand_or_character
           ? {
               group: 15,
-              type: "Non-AI Animation",
-              classification: "Contains Brand/Character",
+              type: "Cannot Register",
+              classification: "Non-AI Animation with Brand/Character",
             }
           : {
               group: 14,
