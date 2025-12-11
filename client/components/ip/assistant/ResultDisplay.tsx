@@ -254,6 +254,42 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 alt="Uploaded"
                 className="w-full h-auto rounded-md object-cover"
               />
+
+              {/* Key insights below image */}
+              <div className="mt-3 pt-3 border-t border-gray-700/30 space-y-2">
+                {/* AI Probability */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">AI Probability</span>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                    flags.ai_generation_analysis.likelihood === "High" ? "bg-red-600/40 text-red-300" :
+                    flags.ai_generation_analysis.likelihood === "Medium" ? "bg-yellow-600/40 text-yellow-300" :
+                    flags.ai_generation_analysis.likelihood === "Low" ? "bg-cyan-600/40 text-cyan-300" :
+                    "bg-emerald-600/40 text-emerald-300"
+                  }`}>
+                    {flags.ai_generation_analysis.likelihood}
+                  </span>
+                </div>
+
+                {/* Confidence Score */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">Confidence</span>
+                  <span className="text-xs font-semibold text-white">
+                    {(flags.ai_generation_analysis.confidence_score * 100).toFixed(0)}%
+                  </span>
+                </div>
+
+                {/* Registration Status */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">Can Register</span>
+                  <div className="flex items-center gap-1">
+                    {statusIcons[license.status]}
+                    <span className="text-xs font-semibold text-white">
+                      {license.status === "CAN_REGISTER" ? "Yes" :
+                       license.status === "CANNOT_REGISTER" ? "No" : "Review"}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
