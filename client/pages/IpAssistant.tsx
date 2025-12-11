@@ -2042,9 +2042,10 @@ const IpAssistant = () => {
                               Final Status
                             </dt>
                             <dd className="mt-1 text-sm text-slate-200 flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xs font-bold">✓</span>
-                              {info?.registrationStatus ||
-                                "Analysis complete"}
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xs font-bold">
+                                ✓
+                              </span>
+                              {info?.registrationStatus || "Analysis complete"}
                             </dd>
                           </div>
                           <div>
