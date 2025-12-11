@@ -417,7 +417,7 @@ export function useIPRegistrationAgent() {
           },
         ];
 
-        setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
+        setRegisterState((p) => ({ ...p, status: "minting", progress: 85 }));
 
         let result: any;
 
@@ -446,7 +446,7 @@ export function useIPRegistrationAgent() {
             result,
           });
 
-          setRegisterState((p) => ({ ...p, progress: 90 }));
+          setRegisterState((p) => ({ ...p, progress: 95 }));
         } catch (txError: any) {
           const errorMsg = txError?.message || String(txError);
           console.error("❌ Mint and register transaction error:", {
