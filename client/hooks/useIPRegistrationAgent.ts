@@ -637,8 +637,10 @@ export function useIPRegistrationAgent() {
 
         console.error("❌ Registration failed:", {
           message: errorMsg,
-          error,
+          errorName: error?.name,
+          errorCode: error?.code,
           stack: error?.stack,
+          fullError: String(error),
         });
         setRegisterState({
           status: "error",
