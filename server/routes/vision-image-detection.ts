@@ -116,24 +116,35 @@ export const handleVisionImageDetection: RequestHandler = async (req, res) => {
     let whitelistMatches = null;
     try {
       const whitelistEntries = await getAllWhitelistEntries();
-      
+
       if (whitelistEntries && whitelistEntries.length > 0) {
         // Use vision analysis to score similarity with whitelisted images
         // This is a conceptual match based on detected objects and descriptions
-        
-        const analysisText = `${analysis.description || ""} ${(analysis.detectedObjects || []).join(" ")}`.toLowerCase();
-        
+
+        const analysisText =
+          `${analysis.description || ""} ${(analysis.detectedObjects || []).join(" ")}`.toLowerCase();
+
         for (const entry of whitelistEntries) {
-          const whitelistDescription = `${entry.metadata?.description || ""} ${entry.metadata?.title || ""}`.toLowerCase();
-          
+          const whitelistDescription =
+            `${entry.metadata?.description || ""} ${entry.metadata?.title || ""}`.toLowerCase();
+
           // Simple string similarity check for vision analysis
           // Count common keywords between analysis and whitelist entry
-          const analysisWords = new Set(analysisText.split(/\s+/).filter(w => w.length > 3));
-          const whitelistWords = new Set(whitelistDescription.split(/\s+/).filter(w => w.length > 3));
-          
-          const commonWords = new Set([...analysisWords].filter(x => whitelistWords.has(x)));
-          const similarity = (commonWords.size / Math.max(analysisWords.size, whitelistWords.size)) * 100;
-          
+          const analysisWords = new Set(
+            analysisText.split(/\s+/).filter((w) => w.length > 3),
+          );
+          const whitelistWords = new Set(
+            whitelistDescription.split(/\s+/).filter((w) => w.length > 3),
+          );
+
+          const commonWords = new Set(
+            [...analysisWords].filter((x) => whitelistWords.has(x)),
+          );
+          const similarity =
+            (commonWords.size /
+              Math.max(analysisWords.size, whitelistWords.size)) *
+            100;
+
           // If high similarity in vision analysis, flag for review
           if (similarity > 70) {
             whitelistMatches = {
