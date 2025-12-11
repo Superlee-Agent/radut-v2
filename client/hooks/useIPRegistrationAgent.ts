@@ -527,7 +527,8 @@ export function useIPRegistrationAgent() {
 
                   // Update progress even if not confirmed
                   if (!confirmed && pollAttempts <= maxAttempts) {
-                    const progressValue = 80 + (pollAttempts * 15) / maxAttempts;
+                    const progressValue =
+                      80 + (pollAttempts * 15) / maxAttempts;
                     setRegisterState((p) => ({
                       ...p,
                       progress: Math.min(94, Math.floor(progressValue)),
