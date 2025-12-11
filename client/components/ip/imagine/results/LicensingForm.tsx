@@ -72,7 +72,7 @@ const LicensingFormComponent = (
   const [successMessage, setSuccessMessage] = useState("");
   const [registeredIpId, setRegisteredIpId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<
-    "idle" | "registering-derivative" | "claiming-revenue" | "success"
+    "idle" | "registering-derivative" | "success"
   >("idle");
 
   // Expose handleRegister to parent component via ref
