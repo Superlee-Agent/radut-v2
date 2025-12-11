@@ -12,6 +12,7 @@ import { WhitelistDetailsModal } from "@/components/ip/assistant/WhitelistDetail
 import { WhitelistMonitor } from "@/components/ip/assistant/WhitelistMonitor";
 import { WelcomeScreen } from "@/components/ip/assistant/WelcomeScreen";
 import { ResultDisplay } from "@/components/ip/assistant/ResultDisplay";
+import { RegistrationLoadingModal } from "@/components/ip/assistant/RegistrationLoadingModal";
 import {
   PopularIPGrid,
   AddRemixImageModal,
@@ -2315,7 +2316,7 @@ const IpAssistant = () => {
                           );
                         }}
                         disabled={
-                          registerState.status === "minting" ||
+                          registerState.status !== "idle" ||
                           !analysisContextsRef.current.get(
                             (msg as any).ctxKey || "",
                           )?.blob ||
@@ -4133,6 +4134,11 @@ const IpAssistant = () => {
           </motion.div>
         </div>
       )}
+
+      <RegistrationLoadingModal
+        registerState={registerState}
+        isOpen={registerState.status !== "idle"}
+      />
     </DashboardLayout>
   );
 };
