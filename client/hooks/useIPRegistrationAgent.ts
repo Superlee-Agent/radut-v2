@@ -420,9 +420,6 @@ export function useIPRegistrationAgent() {
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
 
         let result: any;
-        const rpcUrl =
-          (import.meta as any).env?.VITE_PUBLIC_STORY_RPC ||
-          "https://mainnet.storyrpc.io";
 
         try {
           console.log("Starting mint and register transaction...", {
