@@ -463,7 +463,8 @@ export function useIPRegistrationAgent() {
           console.error("❌ Mint and register transaction error:", {
             message: errorMsg,
             code: txError?.code,
-            error: txError,
+            errorName: txError?.name,
+            errorString: String(txError),
           });
 
           // Check if user rejected the transaction
@@ -599,6 +600,15 @@ export function useIPRegistrationAgent() {
           if (p.status === "success") {
             return p; // Already set to success, don't overwrite
           }
+
+          // Log warning if transaction succeeded but ipId is missing
+          if (!result?.ipId) {
+            console.warn(
+              "⚠️ Transaction succeeded but ipId is missing from result:",
+              result,
+            );
+          }
+
           return {
             status: "success",
             progress: 100,
@@ -636,8 +646,10 @@ export function useIPRegistrationAgent() {
 
         console.error("❌ Registration failed:", {
           message: errorMsg,
-          error,
+          errorName: error?.name,
+          errorCode: error?.code,
           stack: error?.stack,
+          fullError: String(error),
         });
         setRegisterState({
           status: "error",
