@@ -446,7 +446,18 @@ export function useIPRegistrationAgent() {
             result,
           });
 
-          setRegisterState((p) => ({ ...p, progress: 95 }));
+          // Accelerate to 100% success when contract interaction succeeds
+          if (result?.ipId) {
+            setRegisterState({
+              status: "success",
+              progress: 100,
+              error: null,
+              ipId: result?.ipId,
+              txHash: result?.txHash || result?.transactionHash,
+            });
+          } else {
+            setRegisterState((p) => ({ ...p, progress: 95 }));
+          }
         } catch (txError: any) {
           const errorMsg = txError?.message || String(txError);
           console.error("❌ Mint and register transaction error:", {
@@ -583,12 +594,18 @@ export function useIPRegistrationAgent() {
           }
         }
 
-        setRegisterState({
-          status: "success",
-          progress: 100,
-          error: null,
-          ipId: result?.ipId,
-          txHash: result?.txHash || result?.transactionHash,
+        // Only set success if not already set during transaction submission
+        setRegisterState((p) => {
+          if (p.status === "success") {
+            return p; // Already set to success, don't overwrite
+          }
+          return {
+            status: "success",
+            progress: 100,
+            error: null,
+            ipId: result?.ipId,
+            txHash: result?.txHash || result?.transactionHash,
+          };
         });
         return {
           success: true,
