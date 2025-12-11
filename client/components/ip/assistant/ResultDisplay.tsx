@@ -8,6 +8,7 @@ import {
   Eye,
   Image as ImageIcon,
 } from "lucide-react";
+import { ANSWER_DETAILS } from "@/lib/ip-assistant/answer-details";
 
 interface ResultDisplayProps {
   result: ClassificationResult | null;
