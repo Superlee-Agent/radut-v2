@@ -1561,6 +1561,7 @@ const IpAssistant = () => {
             url,
           },
         }));
+        setInput("register");
       } catch (error: any) {
         console.error("handleImage error", error);
         const message = error?.message
