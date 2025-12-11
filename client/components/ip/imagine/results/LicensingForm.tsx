@@ -383,38 +383,6 @@ const LicensingFormComponent = (
         throw new Error(`Failed to register derivative IP: ${errorMsg}`);
       }
 
-      // ========================================
-      // STEP 2: PARENT CLAIMS REVENUE
-      // ========================================
-      console.log("💰 Step 2: Parent claiming revenue...");
-      setCurrentStep("claiming-revenue");
-      onRegisterStart &&
-        onRegisterStart({
-          status: "Parent claiming revenue...",
-          progress: 85,
-          error: null,
-        });
-
-      try {
-        const revenueResponse = await storyClient.royalty.claimAllRevenue({
-          ancestorIpId: parentAsset.ipId,
-          claimer: parentAsset.ipId,
-          currencyTokens: [WIP_TOKEN_ADDRESS],
-          childIpIds: childIpId ? [childIpId] : [],
-          royaltyPolicies: [],
-        });
-
-        console.log(
-          "✅ Parent claimed revenue:",
-          revenueResponse.claimedTokens,
-        );
-      } catch (revenueError: any) {
-        console.warn(
-          "⚠️ Revenue claiming encountered an issue (non-critical):",
-          revenueError?.message,
-        );
-      }
-
       // --- FINALIZE ---
       setCurrentStep("success");
       setRegisteredIpId(childIpId || "pending");
