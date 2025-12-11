@@ -1,4 +1,5 @@
 import multer from "multer";
+import { FormData, Blob } from "formdata-node";
 
 const upload = multer({
   storage: multer.memoryStorage(),
