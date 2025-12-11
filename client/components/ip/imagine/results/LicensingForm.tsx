@@ -1,6 +1,6 @@
 import { useState, forwardRef, useImperativeHandle } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { StoryClient, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
+import { StoryClient } from "@story-protocol/core-sdk";
 import { createWalletClient, custom } from "viem";
 import { keccakOfJson } from "@/lib/utils/crypto";
 import { Address } from "viem";
@@ -72,7 +72,7 @@ const LicensingFormComponent = (
   const [successMessage, setSuccessMessage] = useState("");
   const [registeredIpId, setRegisteredIpId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<
-    "idle" | "registering-derivative" | "claiming-revenue" | "success"
+    "idle" | "registering-derivative" | "success"
   >("idle");
 
   // Expose handleRegister to parent component via ref
@@ -326,14 +326,14 @@ const LicensingFormComponent = (
       const { url: nftMetadataUri } = await nftMetadataUploadRes.json();
 
       // ========================================
-      // STEP 1: REGISTER DERIVATIVE IP ASSET (Combined operation)
+      // STEP 1: REGISTER DERIVATIVE IP ASSET
       // ========================================
-      console.log("📝 Step 1: Registering derivative IP asset...");
+      console.log("📝 Registering derivative IP asset...");
       setCurrentStep("registering-derivative");
       onRegisterStart &&
         onRegisterStart({
           status: "Registering derivative IP asset...",
-          progress: 50,
+          progress: 100,
           error: null,
         });
 
@@ -381,38 +381,6 @@ const LicensingFormComponent = (
         }
 
         throw new Error(`Failed to register derivative IP: ${errorMsg}`);
-      }
-
-      // ========================================
-      // STEP 2: PARENT CLAIMS REVENUE
-      // ========================================
-      console.log("💰 Step 2: Parent claiming revenue...");
-      setCurrentStep("claiming-revenue");
-      onRegisterStart &&
-        onRegisterStart({
-          status: "Parent claiming revenue...",
-          progress: 85,
-          error: null,
-        });
-
-      try {
-        const revenueResponse = await storyClient.royalty.claimAllRevenue({
-          ancestorIpId: parentAsset.ipId,
-          claimer: parentAsset.ipId,
-          currencyTokens: [WIP_TOKEN_ADDRESS],
-          childIpIds: childIpId ? [childIpId] : [],
-          royaltyPolicies: [],
-        });
-
-        console.log(
-          "✅ Parent claimed revenue:",
-          revenueResponse.claimedTokens,
-        );
-      } catch (revenueError: any) {
-        console.warn(
-          "⚠️ Revenue claiming encountered an issue (non-critical):",
-          revenueError?.message,
-        );
       }
 
       // --- FINALIZE ---
@@ -653,9 +621,7 @@ const LicensingFormComponent = (
           <div className="rounded-lg px-3 py-2.5 bg-blue-500/10 border border-blue-500/30 text-sm text-blue-400 flex items-center gap-2">
             <span className="inline-block animate-spin">⚙️</span>
             <span className="capitalize">
-              {currentStep === "registering-derivative"
-                ? "Registering derivative IP asset..."
-                : "Claiming parent revenue..."}
+              Registering derivative IP asset...
             </span>
           </div>
         )}
