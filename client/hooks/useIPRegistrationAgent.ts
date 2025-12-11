@@ -13,7 +13,13 @@ import {
   PILFlavor,
   WIP_TOKEN_ADDRESS,
 } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther, createPublicClient, http } from "viem";
+import {
+  createWalletClient,
+  custom,
+  parseEther,
+  createPublicClient,
+  http,
+} from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
@@ -414,7 +420,9 @@ export function useIPRegistrationAgent() {
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
 
         let result: any;
-        const rpcUrl = (import.meta as any).env?.VITE_PUBLIC_STORY_RPC || "https://mainnet.storyrpc.io";
+        const rpcUrl =
+          (import.meta as any).env?.VITE_PUBLIC_STORY_RPC ||
+          "https://mainnet.storyrpc.io";
 
         try {
           console.log("Starting mint and register transaction...", {
@@ -451,16 +459,15 @@ export function useIPRegistrationAgent() {
           });
 
           // Check if user rejected the transaction
-          if (
-            txError?.code === 4001 ||
-            errorMsg.includes("User rejected")
-          ) {
+          if (txError?.code === 4001 || errorMsg.includes("User rejected")) {
             throw new Error("Transaction was rejected by the user");
           }
 
           // Check for timeout error and attempt to retrieve transaction status
           if (errorMsg.includes("Timed out while waiting for transaction")) {
-            console.log("⏳ Transaction timeout detected, polling for status...");
+            console.log(
+              "⏳ Transaction timeout detected, polling for status...",
+            );
 
             // Extract transaction hash from error message
             const txHashMatch = errorMsg.match(/with hash\s*"([^"]+)"/);
@@ -511,7 +518,9 @@ export function useIPRegistrationAgent() {
                       break;
                     }
                   } catch (pollError) {
-                    console.log(`Poll attempt ${pollAttempts + 1}/${maxAttempts} - transaction still pending`);
+                    console.log(
+                      `Poll attempt ${pollAttempts + 1}/${maxAttempts} - transaction still pending`,
+                    );
                   }
 
                   pollAttempts++;
@@ -522,7 +531,9 @@ export function useIPRegistrationAgent() {
                 }
 
                 if (!confirmed) {
-                  console.warn("⚠️ Transaction not confirmed after 5 minutes, but hash is available");
+                  console.warn(
+                    "⚠️ Transaction not confirmed after 5 minutes, but hash is available",
+                  );
                   result = {
                     txHash: txHash,
                     transactionHash: txHash,
@@ -541,14 +552,15 @@ export function useIPRegistrationAgent() {
                 }
               }
             } else {
-              throw new Error("Transaction timed out and hash could not be extracted. Please check your wallet for the transaction.");
+              throw new Error(
+                "Transaction timed out and hash could not be extracted. Please check your wallet for the transaction.",
+              );
             }
           }
           // Check for other common wallet errors
           else if (errorMsg.includes("insufficient funds")) {
             throw new Error("Insufficient funds for gas and transaction");
-          }
-          else if (errorMsg.includes("network")) {
+          } else if (errorMsg.includes("network")) {
             throw new Error(
               "Network error. Please check your connection and try again",
             );
