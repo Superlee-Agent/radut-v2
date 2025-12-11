@@ -1839,7 +1839,9 @@ const IpAssistant = () => {
                               error={null}
                               imageUrl={imageUrl}
                               ctxKey={ctxKey}
-                              groupNum={msg.analysisResult?.classification.group}
+                              groupNum={
+                                msg.analysisResult?.classification.group
+                              }
                               onRegister={async (ctxKeyForMsg: string) => {
                                 if (!ctxKeyForMsg) return;
                                 if (loadingRegisterFor === ctxKeyForMsg) return;

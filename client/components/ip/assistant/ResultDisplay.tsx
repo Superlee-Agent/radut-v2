@@ -261,7 +261,9 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 <div className="mt-4 pt-4 border-t border-gray-700/30 space-y-3">
                   {(() => {
                     const info =
-                      ANSWER_DETAILS[String(groupNum) as keyof typeof ANSWER_DETAILS];
+                      ANSWER_DETAILS[
+                        String(groupNum) as keyof typeof ANSWER_DETAILS
+                      ];
                     return (
                       <>
                         {info?.registrationStatus && (
