@@ -409,11 +409,25 @@ export function useIPRegistrationAgent() {
         // Build license terms for Story SDK
         const licenseTermsData = [
           {
-    terms: PILFlavor.commercialRemix({
-      commercialRevShare: Number(licenseSettings.revShare) || 0,
+    terms: {
+      transferable: true,
+      royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E", // RoyaltyPolicyLAP
       defaultMintingFee: parseEther(String(licenseSettings.licensePrice || 0)),
+      expiration: 0n,
+      commercialUse: true,
+      commercialAttribution: true,
+      commercializerChecker: "0x0000000000000000000000000000000000000000",
+      commercializerCheckerData: "0x",
+      commercialRevShare: Number(licenseSettings.revShare) || 0,
+      commercialRevCeiling: 0n,
+      derivativesAllowed: true,
+      derivativesAttribution: true,
+      derivativesApproval: false,
+      derivativesReciprocal: true,
+      derivativeRevCeiling: 0n,
       currency: WIP_TOKEN_ADDRESS,
-    }),
+      uri: "",
+    },
     licensingConfig: {
       mintingFee: 0n,
       isSet: false,
