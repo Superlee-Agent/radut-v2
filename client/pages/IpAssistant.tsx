@@ -2297,7 +2297,7 @@ const IpAssistant = () => {
                           );
                         }}
                         disabled={
-                          registerState.status === "minting" ||
+                          registerState.status !== "idle" ||
                           !analysisContextsRef.current.get(
                             (msg as any).ctxKey || "",
                           )?.blob ||
