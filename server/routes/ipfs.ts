@@ -16,11 +16,13 @@ async function pinFileToPinata(name: string, buffer: Buffer, mimetype: string) {
     type: mimetype || "application/octet-stream",
   });
   form.append("file", blob, name || "file");
+
+  const formHeaders = form.getHeaders ? form.getHeaders() : {};
   const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${PINATA_JWT}`,
-      ...(form.headers ? Object.fromEntries(form.headers.entries()) : {}),
+      ...formHeaders,
     },
     body: form as any,
   } as any);
