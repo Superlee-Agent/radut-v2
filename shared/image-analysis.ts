@@ -315,7 +315,7 @@ export function getLicenseSettings(group: GroupNumber): LicenseSettings {
         status: RegistrationStatus.REQUIRES_REVIEW,
         title: "Requires Review",
         description:
-          "This image requires manual review. AI-generated content without faces (Group 1) needs verification, and images with identifiable faces (Groups 5, 10) require a model release.",
+          "This image requires manual review. AI-generated content or uncertain origins need verification, and images with identifiable faces require a model release or consent documentation.",
         buttonText: "Start Review Process",
         color: "yellow",
       };
