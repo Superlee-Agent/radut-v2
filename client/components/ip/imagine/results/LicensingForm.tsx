@@ -399,8 +399,13 @@ const LicensingFormComponent = (
       setCurrentStep("success");
       setRegisteredIpId(childIpId || "pending");
       setRegisterSuccess(true);
+
+      const licenseTypeMsg = isCommercialLicense
+        ? `Commercial (${parentRevSharePercentage.toFixed(2)}% revenue share)`
+        : "Non-Commercial";
+
       setSuccessMessage(
-        `✅ Derivative registered with ${parentRevSharePercentage.toFixed(2)}% revenue share. Child IP: ${childIpId}`,
+        `✅ Derivative registered (${licenseTypeMsg}). Child IP: ${childIpId}`,
       );
 
       onRegisterComplete?.({
