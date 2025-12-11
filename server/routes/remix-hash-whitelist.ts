@@ -368,6 +368,8 @@ export const handleCheckRemixHash: RequestHandler = async (
           found: true,
           type: "phash",
           similarity: maxSimilarity,
+          ipId: mostSimilar.metadata?.ipId,
+          title: mostSimilar.metadata?.title,
           metadata: mostSimilar.metadata,
         });
       }
