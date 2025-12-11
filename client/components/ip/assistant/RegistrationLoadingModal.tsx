@@ -102,10 +102,7 @@ export const RegistrationLoadingModal: React.FC<
           <motion.div
             className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
             onClick={(e) => {
-              if (
-                isSuccess ||
-                isError
-              ) {
+              if (isSuccess || isError) {
                 e.currentTarget.parentElement?.remove?.();
               }
             }}
@@ -262,7 +259,9 @@ export const RegistrationLoadingModal: React.FC<
             </div>
 
             {/* Steps Indicator */}
-            {isLoading && <StepIndicator steps={steps} currentStep={registerState.status} />}
+            {isLoading && (
+              <StepIndicator steps={steps} currentStep={registerState.status} />
+            )}
 
             {/* Close Button */}
             {(isSuccess || isError) && (
@@ -274,7 +273,7 @@ export const RegistrationLoadingModal: React.FC<
                 <button
                   onClick={() => {
                     const modal = document.querySelector(
-                      '[data-registration-modal]',
+                      "[data-registration-modal]",
                     ) as HTMLElement | null;
                     if (modal) {
                       modal.remove?.();
