@@ -594,12 +594,18 @@ export function useIPRegistrationAgent() {
           }
         }
 
-        setRegisterState({
-          status: "success",
-          progress: 100,
-          error: null,
-          ipId: result?.ipId,
-          txHash: result?.txHash || result?.transactionHash,
+        // Only set success if not already set during transaction submission
+        setRegisterState((p) => {
+          if (p.status === "success") {
+            return p; // Already set to success, don't overwrite
+          }
+          return {
+            status: "success",
+            progress: 100,
+            error: null,
+            ipId: result?.ipId,
+            txHash: result?.txHash || result?.transactionHash,
+          };
         });
         return {
           success: true,
