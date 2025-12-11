@@ -326,14 +326,14 @@ const LicensingFormComponent = (
       const { url: nftMetadataUri } = await nftMetadataUploadRes.json();
 
       // ========================================
-      // STEP 1: REGISTER DERIVATIVE IP ASSET (Combined operation)
+      // STEP 1: REGISTER DERIVATIVE IP ASSET
       // ========================================
-      console.log("📝 Step 1: Registering derivative IP asset...");
+      console.log("📝 Registering derivative IP asset...");
       setCurrentStep("registering-derivative");
       onRegisterStart &&
         onRegisterStart({
           status: "Registering derivative IP asset...",
-          progress: 50,
+          progress: 100,
           error: null,
         });
 
