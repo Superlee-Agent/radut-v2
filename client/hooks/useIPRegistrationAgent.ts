@@ -709,7 +709,7 @@ export function useIPRegistrationAgent() {
         }
 
         // Only set success if not already set during transaction submission
-        setRegisterState((p) => {
+        const finalResult = setRegisterState((p) => {
           if (p.status === "success") {
             return p; // Already set to success, don't overwrite
           }
@@ -719,6 +719,11 @@ export function useIPRegistrationAgent() {
             console.warn(
               "⚠️ Transaction succeeded but ipId is missing from result:",
               result,
+            );
+            console.log(
+              "Transaction Hash available:",
+              result?.txHash,
+              "- User can view transaction on explorer using this hash",
             );
           }
 
@@ -730,6 +735,7 @@ export function useIPRegistrationAgent() {
             txHash: result?.txHash || result?.transactionHash,
           };
         });
+
         return {
           success: true,
           ipId: result?.ipId,
