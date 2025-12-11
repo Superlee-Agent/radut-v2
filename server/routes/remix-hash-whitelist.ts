@@ -117,7 +117,7 @@ export const handleAddRemixHash: RequestHandler = async (
     }
 
     // Start with client-provided data
-    let metadata: any = { 
+    let metadata: any = {
       timestamp: Date.now(),
       ipId,
       ...clientData,
@@ -192,11 +192,25 @@ export const handleAddRemixHash: RequestHandler = async (
           Object.entries(fullAssetDetails).filter(
             ([key]) =>
               ![
-                "ipId", "title", "owner", "ownerAddress", "mediaType", "parentsCount", 
-                "isDerivative", "licenses", "licenseTermsIds", "licenseTemplates", 
-                "licenseVisibility", "royaltyContext", "maxMintingFee", "maxRts", 
-                "maxRevenueShare", "parentIpIds", "parentIpDetails", "description", 
-                "ipaMetadataUri"
+                "ipId",
+                "title",
+                "owner",
+                "ownerAddress",
+                "mediaType",
+                "parentsCount",
+                "isDerivative",
+                "licenses",
+                "licenseTermsIds",
+                "licenseTemplates",
+                "licenseVisibility",
+                "royaltyContext",
+                "maxMintingFee",
+                "maxRts",
+                "maxRevenueShare",
+                "parentIpIds",
+                "parentIpDetails",
+                "description",
+                "ipaMetadataUri",
               ].includes(key),
           ),
         ),
@@ -324,11 +338,13 @@ export const handleCheckRemixHash: RequestHandler = async (
       const derivativesAllowed =
         licenses.length > 0
           ? licenses[0].terms?.derivativesAllowed === true
-          : true; 
+          : true;
 
       return res.json({
         found: true,
         type: "exact",
+        ipId: entry.metadata?.ipId,
+        title: entry.metadata?.title,
         metadata: entry.metadata,
         derivativesAllowed,
       });
@@ -366,6 +382,8 @@ export const handleCheckRemixHash: RequestHandler = async (
           found: true,
           type: "phash",
           similarity: maxSimilarity,
+          ipId: mostSimilar.metadata?.ipId,
+          title: mostSimilar.metadata?.title,
           metadata: mostSimilar.metadata,
         });
       }
