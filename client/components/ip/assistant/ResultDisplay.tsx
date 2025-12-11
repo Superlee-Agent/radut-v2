@@ -8,7 +8,6 @@ import {
   Eye,
   Image as ImageIcon,
 } from "lucide-react";
-import { ANSWER_DETAILS } from "@/lib/ip-assistant/answer-details";
 
 interface ResultDisplayProps {
   result: ClassificationResult | null;
@@ -18,7 +17,6 @@ interface ResultDisplayProps {
   onReset?: () => void;
   onRegister?: (ctxKey: string) => Promise<void>;
   ctxKey?: string;
-  groupNum?: number;
 }
 
 const AnalysisSection: React.FC<{
@@ -173,7 +171,6 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   onReset,
   onRegister,
   ctxKey,
-  groupNum,
 }) => {
   if (isLoading) {
     return (
@@ -200,6 +197,24 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   }
 
   const { flags, classification, license } = result;
+
+  const statusIcons: Record<string, React.ReactNode> = {
+    CAN_REGISTER: (
+      <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-lg font-bold">
+        ✓
+      </div>
+    ),
+    CANNOT_REGISTER: (
+      <div className="w-7 h-7 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-400 text-lg font-bold">
+        ✕
+      </div>
+    ),
+    REQUIRES_REVIEW: (
+      <div className="w-7 h-7 rounded-full bg-pink-600/20 border border-pink-500/50 flex items-center justify-center text-pink-400 text-lg font-bold">
+        !
+      </div>
+    ),
+  };
 
   const buttonClasses: Record<string, string> = {
     green:
@@ -239,46 +254,6 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 alt="Uploaded"
                 className="w-full h-auto rounded-md object-cover"
               />
-              {groupNum && (
-                <div className="mt-4 pt-4 border-t border-gray-700/30 space-y-3">
-                  {(() => {
-                    const info =
-                      ANSWER_DETAILS[
-                        String(groupNum) as keyof typeof ANSWER_DETAILS
-                      ];
-                    return (
-                      <>
-                        {info?.registrationStatus && (
-                          <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6] mb-1">
-                              Final Status
-                            </dt>
-                            <dd className="text-sm text-gray-300 flex items-center gap-2">
-                              {info.registrationStatus.includes("✅") && (
-                              )}
-                              {info.registrationStatus.includes("❌") && (
-                              )}
-                              {info.registrationStatus.includes("⚠️") && (
-                              )}
-                              <span>{info.registrationStatus}</span>
-                            </dd>
-                          </div>
-                        )}
-                        {info?.notes && (
-                          <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6] mb-1">
-                              Reason
-                            </dt>
-                            <dd className="text-sm text-gray-400">
-                              {info.notes}
-                            </dd>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
             </div>
           </div>
         )}
