@@ -540,18 +540,18 @@ export function useIPRegistrationAgent() {
                               // Story IP IDs are addresses: 0x{40 hex chars}
                               for (let i = 1; i < log.topics.length; i++) {
                                 const topic = log.topics[i];
-                                if (topic?.length === 66 && topic.startsWith("0x")) {
+                                if (
+                                  topic?.length === 66 &&
+                                  topic.startsWith("0x")
+                                ) {
                                   // Extract last 40 hex chars (address)
                                   const potentialId =
-                                    "0x" +
-                                    topic.slice(-40).toLowerCase();
+                                    "0x" + topic.slice(-40).toLowerCase();
                                   // Validate it looks like an address
                                   if (
                                     /^0x[a-f0-9]{40}$/.test(potentialId) &&
-                                    potentialId !==
-                                      "0x" + "0".repeat(40) &&
-                                    potentialId !==
-                                      "0x" + "f".repeat(40)
+                                    potentialId !== "0x" + "0".repeat(40) &&
+                                    potentialId !== "0x" + "f".repeat(40)
                                   ) {
                                     ipIdFromResult = potentialId;
                                     console.log(
@@ -579,10 +579,7 @@ export function useIPRegistrationAgent() {
                             // Some Story SDK clients have methods to check if an IP was registered
                             // Try to access any available query methods
                             // This is a best-effort attempt
-                            if (
-                              typeof story === "object" &&
-                              story !== null
-                            ) {
+                            if (typeof story === "object" && story !== null) {
                               console.log(
                                 "Story client methods available, attempting query...",
                               );
@@ -596,9 +593,10 @@ export function useIPRegistrationAgent() {
                                   // Log available methods for debugging
                                   const methods = Object.keys(
                                     story.ipAsset,
-                                  ).filter((k) =>
-                                    typeof (story.ipAsset as any)[k] ===
-                                    "function"
+                                  ).filter(
+                                    (k) =>
+                                      typeof (story.ipAsset as any)[k] ===
+                                      "function",
                                   );
                                   console.log(
                                     "Available ipAsset methods:",
