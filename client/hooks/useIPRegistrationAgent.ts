@@ -409,7 +409,7 @@ export function useIPRegistrationAgent() {
         // Build license terms for Story SDK
         const licenseTermsData = [
           {
-            terms: PILFlavor.commercialRemix({
+            licenseTerms: PILFlavor.commercialRemix({
               commercialRevShare: Number(licenseSettings.revShare) || 0,
               defaultMintingFee: parseEther(
                 String(licenseSettings.licensePrice || 0),
@@ -448,6 +448,10 @@ export function useIPRegistrationAgent() {
             result,
           });
 
+          // Debug logging for license terms registration
+          console.log("Full result:", JSON.stringify(result, null, 2));
+          console.log("License Terms IDs:", result?.licenseTermsIds);
+
           // Accelerate to 100% success when contract interaction succeeds
           if (result?.ipId) {
             setRegisterState({
@@ -457,6 +461,11 @@ export function useIPRegistrationAgent() {
               ipId: result?.ipId,
               txHash: result?.txHash || result?.transactionHash,
             });
+            // Note: Story Portal may take time to index
+            console.log(
+              "⏳ Note: Story Portal may take time to index the license and IP. Check Story Explorer with transaction hash:",
+              result?.txHash || result?.transactionHash,
+            );
           } else {
             setRegisterState((p) => ({ ...p, progress: 95 }));
           }
