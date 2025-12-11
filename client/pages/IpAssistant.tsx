@@ -1513,6 +1513,7 @@ const IpAssistant = () => {
                 },
                 additionalImage: null,
               }));
+              setInput("register");
               setAttachmentLoading(false);
               return;
             }
