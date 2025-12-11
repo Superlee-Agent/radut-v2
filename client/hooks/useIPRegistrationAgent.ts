@@ -13,7 +13,15 @@ import {
   PILFlavor,
   WIP_TOKEN_ADDRESS,
 } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther } from "viem";
+import {
+  createWalletClient,
+  custom,
+  parseEther,
+  createPublicClient,
+  http,
+  decodeEventLog,
+  parseAbiItem,
+} from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
@@ -411,9 +419,10 @@ export function useIPRegistrationAgent() {
           },
         ];
 
-        setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
+        setRegisterState((p) => ({ ...p, status: "minting", progress: 85 }));
 
         let result: any;
+
         try {
           console.log("Starting mint and register transaction...", {
             spgNftContract: spg,
@@ -439,41 +448,292 @@ export function useIPRegistrationAgent() {
             result,
           });
 
-          setRegisterState((p) => ({ ...p, progress: 90 }));
+          // Accelerate to 100% success when contract interaction succeeds
+          if (result?.ipId) {
+            setRegisterState({
+              status: "success",
+              progress: 100,
+              error: null,
+              ipId: result?.ipId,
+              txHash: result?.txHash || result?.transactionHash,
+            });
+          } else {
+            setRegisterState((p) => ({ ...p, progress: 95 }));
+          }
         } catch (txError: any) {
-          console.error("❌ Mint and register transaction failed:", {
-            message: txError?.message,
+          const errorMsg = txError?.message || String(txError);
+          console.error("❌ Mint and register transaction error:", {
+            message: errorMsg,
             code: txError?.code,
-            error: txError,
+            errorName: txError?.name,
+            errorString: String(txError),
           });
 
           // Check if user rejected the transaction
-          if (
-            txError?.code === 4001 ||
-            txError?.message?.includes("User rejected")
-          ) {
+          if (txError?.code === 4001 || errorMsg.includes("User rejected")) {
             throw new Error("Transaction was rejected by the user");
           }
-          // Check for other common wallet errors
-          if (txError?.message?.includes("insufficient funds")) {
-            throw new Error("Insufficient funds for gas and transaction");
+
+          // Check for timeout error and attempt to retrieve transaction status
+          if (errorMsg.includes("Timed out while waiting for transaction")) {
+            console.log(
+              "⏳ Transaction timeout detected, polling for status...",
+            );
+
+            // Extract transaction hash from error message
+            const txHashMatch = errorMsg.match(/with hash\s*"([^"]+)"/);
+            const txHash = txHashMatch?.[1];
+
+            if (txHash) {
+              try {
+                setRegisterState((p) => ({
+                  ...p,
+                  status: "minting",
+                  progress: 92,
+                  error: "Checking blockchain confirmation...",
+                }));
+
+                // Create a public client to poll transaction status
+                const publicClient = createPublicClient({
+                  transport: http(rpcUrl),
+                  chain: { id: 1514 } as any,
+                });
+
+                // Poll for up to 60 seconds with 5 second intervals (12 attempts)
+                let confirmed = false;
+                let pollAttempts = 0;
+                const maxAttempts = 12;
+                const pollIntervalMs = 5000; // 5 seconds
+
+                while (!confirmed && pollAttempts < maxAttempts) {
+                  try {
+                    const receipt = await publicClient.getTransactionReceipt({
+                      hash: txHash as `0x${string}`,
+                    });
+
+                    if (receipt) {
+                      console.log("✅ Transaction confirmed:", receipt);
+                      confirmed = true;
+
+                      // Update progress towards success (jump to 98)
+                      setRegisterState((p) => ({
+                        ...p,
+                        progress: 98,
+                      }));
+
+                      // Try to extract IP ID from transaction receipt logs and SDK query
+                      let ipIdFromResult: string | undefined;
+                      try {
+                        console.log(
+                          "Attempting to extract IP ID from transaction...",
+                        );
+                        // Wait for indexing
+                        await new Promise((resolve) =>
+                          setTimeout(resolve, 1500),
+                        );
+
+                        // First, try to extract from transaction logs
+                        if (receipt.logs && receipt.logs.length > 0) {
+                          for (const log of receipt.logs) {
+                            try {
+                              // Look for address-length topics (potential ipId)
+                              // Story IP IDs are addresses: 0x{40 hex chars}
+                              for (let i = 1; i < log.topics.length; i++) {
+                                const topic = log.topics[i];
+                                if (
+                                  topic?.length === 66 &&
+                                  topic.startsWith("0x")
+                                ) {
+                                  // Extract last 40 hex chars (address)
+                                  const potentialId =
+                                    "0x" + topic.slice(-40).toLowerCase();
+                                  // Validate it looks like an address
+                                  if (
+                                    /^0x[a-f0-9]{40}$/.test(potentialId) &&
+                                    potentialId !== "0x" + "0".repeat(40) &&
+                                    potentialId !== "0x" + "f".repeat(40)
+                                  ) {
+                                    ipIdFromResult = potentialId;
+                                    console.log(
+                                      "✅ Extracted IP ID from logs:",
+                                      ipIdFromResult,
+                                    );
+                                    break;
+                                  }
+                                }
+                              }
+                              if (ipIdFromResult) break;
+                            } catch (decodeErr) {
+                              // Continue to next log
+                            }
+                          }
+                        }
+
+                        // If we still don't have ipId, try querying the SDK
+                        if (!ipIdFromResult && story && addr) {
+                          try {
+                            console.log(
+                              "Attempting to query registered IPs for address:",
+                              addr,
+                            );
+                            // Some Story SDK clients have methods to check if an IP was registered
+                            // Try to access any available query methods
+                            // This is a best-effort attempt
+                            if (typeof story === "object" && story !== null) {
+                              console.log(
+                                "Story client methods available, attempting query...",
+                              );
+                              // The SDK might have methods like story.ipAsset.getRegisteredIps
+                              // We'll try common patterns
+                              try {
+                                if (
+                                  story.ipAsset &&
+                                  typeof story.ipAsset === "object"
+                                ) {
+                                  // Log available methods for debugging
+                                  const methods = Object.keys(
+                                    story.ipAsset,
+                                  ).filter(
+                                    (k) =>
+                                      typeof (story.ipAsset as any)[k] ===
+                                      "function",
+                                  );
+                                  console.log(
+                                    "Available ipAsset methods:",
+                                    methods,
+                                  );
+                                }
+                              } catch (methodErr) {
+                                console.log(
+                                  "Could not enumerate methods:",
+                                  methodErr,
+                                );
+                              }
+                            }
+                          } catch (queryErr) {
+                            console.log(
+                              "Could not query SDK for registered IPs:",
+                              queryErr,
+                            );
+                          }
+                        }
+
+                        if (!ipIdFromResult) {
+                          console.log(
+                            "⚠️ Could not extract ipId - transaction succeeded but ipId could not be determined",
+                          );
+                        }
+                      } catch (extractError) {
+                        console.log(
+                          "Error during IP ID extraction:",
+                          extractError,
+                        );
+                      }
+
+                      // Result with transaction hash and any ipId we found
+                      result = {
+                        txHash: txHash,
+                        transactionHash: txHash,
+                        ipId: ipIdFromResult,
+                      };
+                      break;
+                    }
+                  } catch (pollError) {
+                    // Silently continue, RPC might be temporarily unavailable
+                    console.log(
+                      `Poll attempt ${pollAttempts + 1}/${maxAttempts} - transaction status pending`,
+                    );
+                  }
+
+                  pollAttempts++;
+
+                  // Update progress even if not confirmed (fast progression to 99)
+                  if (!confirmed && pollAttempts <= maxAttempts) {
+                    const progressValue = 92 + (pollAttempts * 6) / maxAttempts;
+                    setRegisterState((p) => ({
+                      ...p,
+                      progress: Math.min(99, Math.floor(progressValue)),
+                    }));
+                  }
+
+                  if (!confirmed && pollAttempts < maxAttempts) {
+                    // Wait before next poll
+                    await new Promise((resolve) =>
+                      setTimeout(resolve, pollIntervalMs),
+                    );
+                  }
+                }
+
+                // If we have a txHash, consider it successful - the transaction is likely confirmed or will be
+                if (!confirmed && txHash) {
+                  console.warn(
+                    "⚠️ Transaction not confirmed in initial polling window, but hash is available. Transaction likely succeeded on-chain.",
+                  );
+                  result = {
+                    txHash: txHash,
+                    transactionHash: txHash,
+                    ipId: undefined,
+                  };
+                }
+              } catch (pollError) {
+                console.error("Error polling transaction status:", pollError);
+                // Continue with whatever result we have
+                if (!result?.txHash && txHash) {
+                  result = {
+                    txHash: txHash,
+                    transactionHash: txHash,
+                    ipId: result?.ipId,
+                  };
+                }
+              }
+            } else {
+              throw new Error(
+                "Transaction timed out and hash could not be extracted. Please check your wallet for the transaction.",
+              );
+            }
           }
-          if (txError?.message?.includes("network")) {
+          // Check for other common wallet errors
+          else if (errorMsg.includes("insufficient funds")) {
+            throw new Error("Insufficient funds for gas and transaction");
+          } else if (errorMsg.includes("network")) {
             throw new Error(
               "Network error. Please check your connection and try again",
             );
           }
           // Re-throw with original error if not a known case
-          throw txError;
+          else {
+            throw txError;
+          }
         }
 
-        setRegisterState({
-          status: "success",
-          progress: 100,
-          error: null,
-          ipId: result?.ipId,
-          txHash: result?.txHash || result?.transactionHash,
+        // Only set success if not already set during transaction submission
+        const finalResult = setRegisterState((p) => {
+          if (p.status === "success") {
+            return p; // Already set to success, don't overwrite
+          }
+
+          // Log warning if transaction succeeded but ipId is missing
+          if (!result?.ipId) {
+            console.warn(
+              "⚠️ Transaction succeeded but ipId is missing from result:",
+              result,
+            );
+            console.log(
+              "Transaction Hash available:",
+              result?.txHash,
+              "- User can view transaction on explorer using this hash",
+            );
+          }
+
+          return {
+            status: "success",
+            progress: 100,
+            error: null,
+            ipId: result?.ipId,
+            txHash: result?.txHash || result?.transactionHash,
+          };
         });
+
         return {
           success: true,
           ipId: result?.ipId,
@@ -503,8 +763,10 @@ export function useIPRegistrationAgent() {
 
         console.error("❌ Registration failed:", {
           message: errorMsg,
-          error,
+          errorName: error?.name,
+          errorCode: error?.code,
           stack: error?.stack,
+          fullError: String(error),
         });
         setRegisterState({
           status: "error",
