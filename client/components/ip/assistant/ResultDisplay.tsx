@@ -262,17 +262,24 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 {(() => {
                   const groupStr = String(classification.group);
                   const details = ANSWER_DETAILS[groupStr];
-                  const statusMessage = details?.registrationStatus || license.buttonText;
+                  const statusMessage =
+                    details?.registrationStatus || license.buttonText;
                   const isCanRegister = license.status === "CAN_REGISTER";
 
                   return (
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-xs text-gray-400">Final Status</span>
-                      <p className={`text-xs font-semibold leading-tight ${
-                        statusMessage?.includes("✅") ? "text-emerald-300" :
-                        statusMessage?.includes("❌") ? "text-red-300" :
-                        "text-yellow-300"
-                      }`}>
+                      <span className="text-xs text-gray-400">
+                        Final Status
+                      </span>
+                      <p
+                        className={`text-xs font-semibold leading-tight ${
+                          statusMessage?.includes("✅")
+                            ? "text-emerald-300"
+                            : statusMessage?.includes("❌")
+                              ? "text-red-300"
+                              : "text-yellow-300"
+                        }`}
+                      >
                         {statusMessage}
                       </p>
                     </div>
@@ -288,9 +295,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                   return notes ? (
                     <div className="flex flex-col gap-1.5 text-xs">
                       <span className="text-gray-400">Reason</span>
-                      <p className="text-gray-300 leading-tight">
-                        {notes}
-                      </p>
+                      <p className="text-gray-300 leading-tight">{notes}</p>
                     </div>
                   ) : null;
                 })()}
