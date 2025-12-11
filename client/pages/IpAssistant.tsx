@@ -2316,7 +2316,7 @@ const IpAssistant = () => {
                       <div className="text-xs text-slate-400">
                         Status: {registerState.status}{" "}
                         {registerState.progress
-                          ? `(${registerState.progress}%)`
+                          ? `(${Math.min(registerState.progress, 100)}%)`
                           : ""}
                         {registerState.status === "success" &&
                         registerState.ipId ? (
@@ -2342,6 +2342,30 @@ const IpAssistant = () => {
                           </span>
                         ) : null}
                       </div>
+
+                      {registerState.status === "success" && (
+                        <div className="mt-4 pt-3 border-t border-slate-700/50">
+                          <div className="space-y-3">
+                            <div>
+                              <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6]">
+                                Final Status
+                              </dt>
+                              <dd className="mt-1 text-sm text-slate-200">
+                                {info?.registrationStatus ||
+                                  "Analysis complete"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-xs font-semibold uppercase tracking-wide text-[#FF4DA6]">
+                                Reason
+                              </dt>
+                              <dd className="mt-1 text-sm text-slate-300">
+                                {info?.notes}
+                              </dd>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
