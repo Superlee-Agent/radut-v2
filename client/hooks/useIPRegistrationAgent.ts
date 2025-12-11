@@ -409,14 +409,22 @@ export function useIPRegistrationAgent() {
         // Build license terms for Story SDK
         const licenseTermsData = [
           {
-            licenseTerms: PILFlavor.commercialRemix({
-              commercialRevShare: Number(licenseSettings.revShare) || 0,
-              defaultMintingFee: parseEther(
-                String(licenseSettings.licensePrice || 0),
-              ),
-              currency: WIP_TOKEN_ADDRESS,
-            }),
-          },
+    terms: PILFlavor.commercialRemix({
+      commercialRevShare: Number(licenseSettings.revShare) || 0,
+      defaultMintingFee: parseEther(String(licenseSettings.licensePrice || 0)),
+      currency: WIP_TOKEN_ADDRESS,
+    }),
+    licensingConfig: {
+      mintingFee: 0n,
+      isSet: false,
+      disabled: false,
+      commercialRevShare: 0,
+      expectGroupRewardPool: "0x0000000000000000000000000000000000000000",
+      expectMinimumGroupRewardShare: 0,
+      licensingHook: "0x0000000000000000000000000000000000000000",
+      hookData: "0x",
+    },
+  },
         ];
 
         setRegisterState((p) => ({ ...p, status: "minting", progress: 85 }));
